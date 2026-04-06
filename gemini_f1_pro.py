@@ -60,7 +60,7 @@ if not CALENDAR:
     st.error("⚠️ No se pudo cargar el calendario. Revisa la conexión a la tabla 'events'.")
     st.stop()
 
-# 2. CSS Inyectado
+# 2. CSS Inyectado (AHORA CON DISEÑO RESPONSIVO MÓVIL)
 st.markdown("""
 <style>
     .grid-container {
@@ -145,6 +145,49 @@ st.markdown("""
     /* Team logo centrado */
     .h2h-team-logo-center { width: 60px; flex-shrink: 0; text-align: center; display: flex; justify-content: center; align-items: center; margin: 0 15px;}
     .h2h-team-logo-img { height: 60px; width: auto; object-fit: contain; }
+
+    /* ========================================== */
+    /* 📱 REGLAS MÓVILES (MEDIA QUERIES)         */
+    /* ========================================== */
+    @media (max-width: 768px) {
+        /* Ajustes Tab 1 (Master Grid) */
+        .grid-container {
+            flex-direction: column; /* Apila la sección del piloto arriba y la telemetría abajo */
+            min-height: auto;
+        }
+        .driver-photo {
+            opacity: 0.25; /* Transparente para no estorbar con el texto en pantallas chicas */
+            right: -20px;
+        }
+        .telemetry-section {
+            width: 100%;
+            border-left: none;
+            border-top: 1px solid #38383e; /* Línea divisoria horizontal */
+            padding-top: 15px;
+        }
+
+        /* Ajustes Tab 2 (H2H) */
+        .h2h-match-wrapper {
+            flex-direction: column; /* Apila a los pilotos verticalmente */
+            padding: 10px;
+        }
+        .h2h-driver-unit {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        .h2h-driver-unit-right {
+            flex-direction: row; /* Quita el modo reverso para que la foto y el texto se alineen igual que el piloto 1 */
+            text-align: left;
+        }
+        .h2h-team-logo-center {
+            width: 100%;
+            height: 40px;
+            margin: 5px 0;
+        }
+        .h2h-team-logo-img {
+            height: 40px;
+        }
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -259,7 +302,6 @@ def run_ai_prediction_engine(target_round):
     
     ranks_A = np.argsort(np.argsort(theoretical_times_base + caos_matrix, axis=1), axis=1) + 1
     
-    # NUEVO: Cálculo de Probabilidades de Mercado
     prob_win = (ranks_A == 1).mean(axis=0) * 100
     prob_podium = (ranks_A <= 3).mean(axis=0) * 100
     prob_top6 = (ranks_A <= 6).mean(axis=0) * 100
@@ -560,7 +602,6 @@ with tab3:
         if df_off.empty:
             st.info(f"⏳ La carrera de **{selected_race_name}** aún no tiene resultados oficiales en la base de datos para medir la acertividad.")
             
-            # Aún sin resultados actuales, mostramos el histórico hasta la carrera anterior si existe
             st.write("---")
             st.markdown("#### 📈 Evolución Histórica del Algoritmo")
             df_history = get_historical_accuracy(selected_round - 1)
