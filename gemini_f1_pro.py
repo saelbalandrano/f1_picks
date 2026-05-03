@@ -199,7 +199,10 @@ st.title("🏎️ F1 2026 - AI Race Predictor")
 col_sel1, col_sel2 = st.columns([1, 2])
 with col_sel1:
     race_options = {v['name']: k for k, v in CALENDAR.items()}
-    default_index = list(race_options.values()).index(3) if 3 in race_options.values() else (len(race_options) - 1 if len(race_options) > 0 else 0)
+    
+    # NUEVA LÓGICA: Simplemente tomamos el tamaño total de la lista y le restamos 1 para apuntar al último elemento (la carrera más reciente)
+    default_index = len(race_options) - 1 if len(race_options) > 0 else 0
+    
     selected_race_name = st.selectbox("Selecciona la Carrera a Simular:", list(race_options.keys()), index=default_index)
     selected_round = race_options[selected_race_name]
 
