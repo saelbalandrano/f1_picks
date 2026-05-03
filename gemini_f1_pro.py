@@ -31,9 +31,16 @@ supabase = init_connection()
 # ==========================================
 # 📅 CALENDARIO DINÁMICO DESDE LA NUBE
 # ==========================================
+PHYSICS_FALLBACK = {
+    1: {"laps": 58, "diff": 1.10},
+    2: {"laps": 56, "diff": 0.90},
+    3: {"laps": 53, "diff": 1.20},
+    4: {"laps": 57, "diff": 1.15}, 
+}
+
 @st.cache_data(ttl=86400) 
 def load_dynamic_calendar():
-    res = supabase.table("events").select("round_number, country, circuit_name, status, total_laps, track_diff").order("round_number").execute()
+    res = supabase.table("events").select("round_number, country, circuit_name, status").order("round_number").execute()
     cal = {}
     if res.data:
         for row in res.data:
@@ -42,9 +49,8 @@ def load_dynamic_calendar():
                 cal[r_num] = {
                     "name": f"Ronda {r_num}: {row['country']} - {row['circuit_name']}",
                     "circuit_name": row['circuit_name'],
-                    # Si ya extrajo las vueltas las usa, si no, usa 50 temporalmente
-                    "laps": row.get('total_laps') or 50, 
-                    "diff": float(row.get('track_diff') or 1.0)
+                    "laps": PHYSICS_FALLBACK.get(r_num, {"laps": 50})["laps"],
+                    "diff": PHYSICS_FALLBACK.get(r_num, {"diff": 1.0})["diff"]
                 }
     return cal
 
@@ -53,7 +59,7 @@ CALENDAR = load_dynamic_calendar()
 if not CALENDAR:
     st.error("⚠️ No se pudo cargar el calendario. Revisa la conexión a la tabla 'events'.")
     st.stop()
-    
+
 # 2. CSS Inyectado (AHORA CON DISEÑO RESPONSIVO MÓVIL)
 st.markdown("""
 <style>
@@ -190,28 +196,10 @@ st.title("🏎️ F1 2026 - AI Race Predictor")
 # ==========================================
 # 🎛️ SELECTOR DE CARRERAS
 # ==========================================
-@st.cache_data(ttl=60)
-def obtener_ronda_activa():
-    # Traemos todas las rondas que realmente tengan telemetría guardada
-    res = supabase.table("race_profiles").select("round_number").execute()
-    if res.data:
-        rondas_con_datos = [r['round_number'] for r in res.data]
-        return max(rondas_con_datos) # Forzamos el número máximo real
-    return 1 # Solo si la base de datos está 100% vacía
-
-ronda_activa = obtener_ronda_activa()
-
 col_sel1, col_sel2 = st.columns([1, 2])
 with col_sel1:
     race_options = {v['name']: k for k, v in CALENDAR.items()}
-    valores_rondas = list(race_options.values())
-    
-    # Buscamos el índice exacto de la última carrera con datos
-    if ronda_activa in valores_rondas:
-        default_index = valores_rondas.index(ronda_activa)
-    else:
-        default_index = 0
-        
+    default_index = list(race_options.values()).index(3) if 3 in race_options.values() else (len(race_options) - 1 if len(race_options) > 0 else 0)
     selected_race_name = st.selectbox("Selecciona la Carrera a Simular:", list(race_options.keys()), index=default_index)
     selected_round = race_options[selected_race_name]
 
