@@ -196,13 +196,14 @@ st.title("🏎️ F1 2026 - AI Race Predictor")
 # ==========================================
 # 🎛️ SELECTOR DE CARRERAS
 # ==========================================
-# 1. Le preguntamos a Supabase cuál es la última ronda con datos reales
 @st.cache_data(ttl=60)
 def obtener_ronda_activa():
-    res = supabase.table("qualy_profiles").select("round_number").order("round_number", desc=True).limit(1).execute()
+    # Traemos todas las rondas que realmente tengan telemetría guardada
+    res = supabase.table("race_profiles").select("round_number").execute()
     if res.data:
-        return res.data[0]['round_number']
-    return 1 # Si no hay nada, empieza en la 1
+        rondas_con_datos = [r['round_number'] for r in res.data]
+        return max(rondas_con_datos) # Forzamos el número máximo real
+    return 1 # Solo si la base de datos está 100% vacía
 
 ronda_activa = obtener_ronda_activa()
 
@@ -211,7 +212,7 @@ with col_sel1:
     race_options = {v['name']: k for k, v in CALENDAR.items()}
     valores_rondas = list(race_options.values())
     
-    # 2. Buscamos el índice de esa ronda activa y lo ponemos por defecto
+    # Buscamos el índice exacto de la última carrera con datos
     if ronda_activa in valores_rondas:
         default_index = valores_rondas.index(ronda_activa)
     else:
