@@ -162,29 +162,35 @@ def actualizar_ritmos(year, round_num):
     except Exception as e: print(f"❌ Error Ritmos: {e}\n")
 
 # ==========================================
-# 🚀 DISPARADOR MAESTRO AUTÓNOMO (A PRUEBA DE FALLOS)
+# 🚀 DISPARADOR MAESTRO AUTÓNOMO (VENTANA DE TIEMPO INTELIGENTE)
 # ==========================================
 if __name__ == "__main__":
     AÑO_ACTUAL = 2026
     
-    # 1. Obtenemos el calendario
+    print("🔎 Analizando el calendario oficial de la FIA...")
     calendario = fastf1.get_event_schedule(AÑO_ACTUAL)
     
-    # 2. Fecha actual (sin lidiar con zonas horarias complejas)
-    hoy = pd.Timestamp.now()
+    # Quitamos los tests de pretemporada de la lista
+    calendario = calendario[calendario['EventFormat'] != 'testing']
     
-    # 3. Buscamos el evento que corresponde a "hoy" (margen de -3 a +3 días para asegurar el fin de semana)
-    ventana_evento = calendario[(calendario['EventDate'] >= (hoy - pd.Timedelta(days=3))) & 
-                                (calendario['EventDate'] <= (hoy + pd.Timedelta(days=3)))]
+    # Estandarizamos fechas para evitar que el reloj de GitHub se vuelva loco
+    calendario['EventDate'] = pd.to_datetime(calendario['EventDate']).dt.tz_localize(None)
+    hoy = pd.Timestamp.now().tz_localize(None)
     
-    if not ventana_evento.empty:
-        RONDA_A_ACTUALIZAR = int(ventana_evento.iloc[0]['RoundNumber'])
+    # LÓGICA MAESTRA: Buscamos la carrera actual o la PRÓXIMA.
+    # Consideramos que una carrera "sigue siendo la actual" hasta 2 días después de su fecha.
+    carreras_vigentes = calendario[calendario['EventDate'] >= (hoy - pd.Timedelta(days=2))]
+    
+    if not carreras_vigentes.empty:
+        evento_objetivo = carreras_vigentes.iloc[0]
+        RONDA_A_ACTUALIZAR = int(evento_objetivo['RoundNumber'])
+        nombre_gp = evento_objetivo['EventName']
+        print(f"📍 Radar fijado en: {nombre_gp} (Ronda Oficial FIA: {RONDA_A_ACTUALIZAR})")
     else:
-        # Si por alguna razón estamos a mitad de semana, busca la última carrera pasada.
-        carreras_pasadas = calendario[calendario['EventDate'] < hoy]
-        RONDA_A_ACTUALIZAR = int(carreras_pasadas.iloc[-1]['RoundNumber']) if not carreras_pasadas.empty else 1
+        print("⚠️ Temporada terminada. Usando la última carrera del año.")
+        RONDA_A_ACTUALIZAR = int(calendario.iloc[-1]['RoundNumber'])
         
-    print(f"--- INICIANDO EXTRACCIÓN TOTAL PARA RONDA {RONDA_A_ACTUALIZAR} ---\n")
+    print(f"\n--- INICIANDO EXTRACCIÓN TOTAL PARA RONDA {RONDA_A_ACTUALIZAR} ---\n")
     actualizar_qualy(AÑO_ACTUAL, RONDA_A_ACTUALIZAR)
     actualizar_resultados(AÑO_ACTUAL, RONDA_A_ACTUALIZAR)
     actualizar_ritmos(AÑO_ACTUAL, RONDA_A_ACTUALIZAR)
