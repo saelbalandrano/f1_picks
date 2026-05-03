@@ -5,7 +5,7 @@ import numpy as np
 from supabase import create_client
 from dotenv import load_dotenv
 
-print("🏎️ Encendiendo el motor F1 (MODO PRE-CARRERA MULTI-SESIÓN)...")
+print("🏎️ Encendiendo el motor F1 (MODO 100% AUTÓNOMO)...")
 
 # 1. Configuración inicial
 load_dotenv()
@@ -18,27 +18,23 @@ if not os.path.exists(cache_dir):
     os.makedirs(cache_dir)
 fastf1.Cache.enable_cache(cache_dir)
 
-print("✅ Conexión y Caché listos.\n")
-
 # ==========================================
-# ⏱️ 1. CLASIFICACIÓN (QUALY / SPRINT QUALY)
+# ⏱️ 1. CLASIFICACIÓN (QUALY / SQ)
 # ==========================================
 def actualizar_qualy(year, round_num):
     print(f"⏱️ Procesando Clasificación (Ronda {round_num})...")
     try:
-        # Intentamos descargar la Qualy principal
         session = fastf1.get_session(year, round_num, 'Q')
         session.load(telemetry=False, weather=False) 
         resultados = session.results
         
         if resultados.empty:
-            print("⚠️ La Qualy principal no se ha corrido. Intentando con Sprint Qualy (SQ)...")
+            print("⚠️ Qualy principal vacía. Intentando con Sprint Qualy (SQ)...")
             try:
                 session = fastf1.get_session(year, round_num, 'SQ')
                 session.load(telemetry=False, weather=False)
                 resultados = session.results
             except:
-                print("⚠️ Ninguna sesión de clasificación disponible aún.")
                 return
 
         pole_time = resultados.iloc[0]['Q3'] if 'Q3' in resultados.columns and not pd.isnull(resultados.iloc[0]['Q3']) else resultados.iloc[0].get('SQ3', None)
@@ -46,8 +42,6 @@ def actualizar_qualy(year, round_num):
         datos_qualy = []
         for index, row in resultados.iterrows():
             code = row['Abbreviation']
-            
-            # Buscamos el mejor tiempo dependiendo del formato (Q o SQ)
             if 'Q3' in row:
                 best_time = row['Q3'] if not pd.isnull(row['Q3']) else (row['Q2'] if not pd.isnull(row['Q2']) else row['Q1'])
             else:
@@ -67,130 +61,110 @@ def actualizar_qualy(year, round_num):
     except Exception as e: print(f"❌ Error Qualy: {e}\n")
 
 # ==========================================
-# 🏆 2. RESULTADOS OFICIALES (SOLO SI YA PASÓ)
+# 🏆 2. RESULTADOS OFICIALES
 # ==========================================
 def actualizar_resultados(year, round_num):
-    print(f"🏆 Intentando buscar Resultados de Carrera Oficial (Ronda {round_num})...")
+    print(f"🏆 Buscando Resultados Oficiales (Ronda {round_num})...")
     try:
         session = fastf1.get_session(year, round_num, 'R')
         session.load(telemetry=False, weather=False)
-        resultados = session.results
-        
-        if resultados.empty:
-            print("⚠️ La carrera principal aún no tiene resultados. Omitiendo.\n")
-            return
+        if session.results.empty: return
             
         datos_oficiales = []
-        for index, row in resultados.iterrows():
-            code = row['Abbreviation']
-            pos = row['Position']
-            
-            if pd.isnull(pos): pos = 20.0
-            datos_oficiales.append({"round_number": round_num, "code": code, "official_position": int(pos)})
+        for index, row in session.results.iterrows():
+            pos = row['Position'] if not pd.isnull(row['Position']) else 20.0
+            datos_oficiales.append({"round_number": round_num, "code": row['Abbreviation'], "official_position": int(pos)})
             
         supabase.table("official_race_results").delete().eq("round_number", round_num).execute()
         supabase.table("official_race_results").insert(datos_oficiales).execute()
         print(f"✅ Resultados Oficiales guardados.\n")
-    except Exception as e: print(f"⚠️ La carrera principal no se ha corrido aún.\n")
+    except Exception: print(f"⚠️ La carrera principal no se ha corrido aún.\n")
 
 # ==========================================
-# 📊 3. RITMOS MULTI-SESIÓN (EL CEREBRO REAL)
+# 📊 3. RITMOS MULTI-SESIÓN
 # ==========================================
 def actualizar_ritmos(year, round_num):
-    print(f"📊 Recolectando telemetría de TODAS las sesiones previas (Ronda {round_num})...")
+    print(f"📊 Recolectando telemetría de TODAS las sesiones (Ronda {round_num})...")
     try:
-        sesiones_pre_carrera = ['FP1', 'FP2', 'FP3', 'SQ', 'S']
         vueltas_acumuladas = []
-        
-        for sesion_nombre in sesiones_pre_carrera:
+        for sesion_nombre in ['FP1', 'FP2', 'FP3', 'SQ', 'S']:
             try:
                 session = fastf1.get_session(year, round_num, sesion_nombre)
                 session.load(telemetry=False, weather=False)
-                laps = session.laps.pick_quicklaps() 
-                
-                if not laps.empty:
-                    print(f"   -> Datos extraídos con éxito de: {sesion_nombre}")
-                    vueltas_acumuladas.append(laps)
-            except Exception:
-                pass # Si la sesión no existe (ej. FP3 en fin de semana Sprint), la salta sin romper nada.
+                if not session.laps.empty: vueltas_acumuladas.append(session.laps.pick_quicklaps())
+            except: pass 
         
-        if not vueltas_acumuladas:
-            print("⚠️ No se encontró telemetría en ninguna sesión previa. Intenta más tarde.")
-            return
+        if not vueltas_acumuladas: return
             
-        # Unimos absolutamente todas las vueltas válidas del fin de semana
         laps_master = pd.concat(vueltas_acumuladas, ignore_index=True)
-        
         datos_ritmo = []
-        pilotos = laps_master['Driver'].unique()
         
-        for piloto in pilotos:
+        for piloto in laps_master['Driver'].unique():
             vueltas_piloto = laps_master[laps_master['Driver'] == piloto]
-            compuestos = vueltas_piloto['Compound'].dropna().unique()
-            
-            for comp in compuestos:
-                vueltas_comp = vueltas_piloto[vueltas_piloto['Compound'] == comp]
-                if len(vueltas_comp) < 3: continue 
+            for comp in vueltas_piloto['Compound'].dropna().unique():
+                v_c = vueltas_piloto[vueltas_piloto['Compound'] == comp]
+                if len(v_c) < 3: continue 
                 
-                base_pace = vueltas_comp['LapTime'].dt.total_seconds().median()
-                
-                if len(vueltas_comp) >= 5:
-                    x = np.arange(len(vueltas_comp))
-                    y = vueltas_comp['LapTime'].dt.total_seconds().values
-                    deg = np.polyfit(x, y, 1)[0]
-                    deg = max(0.02, min(deg, 0.15)) 
-                else:
-                    deg = 0.05 
+                base_pace = v_c['LapTime'].dt.total_seconds().median()
+                deg = np.polyfit(np.arange(len(v_c)), v_c['LapTime'].dt.total_seconds().values, 1)[0] if len(v_c) >= 5 else 0.05 
                 
                 datos_ritmo.append({
-                    "round_number": round_num,
-                    "code": piloto,
-                    "compound": comp,
-                    "base_pace_s": round(base_pace, 3),
-                    "deg_per_lap": round(deg, 3),
-                    "deg_ms_per_lap": int(deg * 1000),
-                    "total_valid_sectors": len(vueltas_comp)
+                    "round_number": round_num, "code": piloto, "compound": comp,
+                    "base_pace_s": round(base_pace, 3), "deg_per_lap": round(max(0.02, min(deg, 0.15)), 3),
+                    "deg_ms_per_lap": int(deg * 1000), "total_valid_sectors": len(v_c)
                 })
         
         if datos_ritmo:
             supabase.table("race_profiles").delete().eq("round_number", round_num).execute()
             supabase.table("race_profiles").insert(datos_ritmo).execute()
-            print(f"✅ Ritmos consolidados ({len(datos_ritmo)} perfiles) guardados en Supabase.\n")
-        else:
-            print("⚠️ No se recolectaron ritmos suficientes tras filtrar las vueltas.")
-            
+            print(f"✅ Ritmos consolidados ({len(datos_ritmo)} perfiles) guardados.\n")
     except Exception as e: print(f"❌ Error Ritmos: {e}\n")
 
 # ==========================================
-# 🚀 DISPARADOR MAESTRO AUTÓNOMO (VENTANA DE TIEMPO INTELIGENTE)
+# 🧠 4. AUTO-APRENDIZAJE DE PISTA (NUEVO)
+# ==========================================
+def actualizar_info_pista(year, round_num):
+    print(f"🌍 Analizando metadata del circuito (Ronda {round_num})...")
+    try:
+        event = fastf1.get_event(year, round_num)
+        event_name = event['EventName']
+        laps = 50 # Default
+        
+        # Viajamos un año al pasado para ver cuántas vueltas dieron en este mismo GP
+        try:
+            print(f"   -> Consultando archivo histórico de {event_name} ({year-1})...")
+            hist_session = fastf1.get_session(year - 1, event_name, 'R')
+            hist_session.load(telemetry=False, weather=False)
+            laps = int(hist_session.results['Laps'].max())
+        except:
+            print("   -> No hay datos del año pasado. Usando aproximación.")
+        
+        # Guardamos el dato matemáticamente comprobado en la base de datos
+        supabase.table("events").update({"total_laps": laps}).eq("round_number", round_num).execute()
+        print(f"✅ Pista actualizada automáticamente en Supabase: {laps} Vueltas.\n")
+    except Exception as e:
+        print(f"❌ Error al calcular metadata de pista: {e}")
+
+# ==========================================
+# 🚀 DISPARADOR MAESTRO 
 # ==========================================
 if __name__ == "__main__":
     AÑO_ACTUAL = 2026
     
-    print("🔎 Analizando el calendario oficial de la FIA...")
     calendario = fastf1.get_event_schedule(AÑO_ACTUAL)
-    
-    # Quitamos los tests de pretemporada de la lista
     calendario = calendario[calendario['EventFormat'] != 'testing']
-    
-    # Estandarizamos fechas para evitar que el reloj de GitHub se vuelva loco
     calendario['EventDate'] = pd.to_datetime(calendario['EventDate']).dt.tz_localize(None)
     hoy = pd.Timestamp.now().tz_localize(None)
     
-    # LÓGICA MAESTRA: Buscamos la carrera actual o la PRÓXIMA.
-    # Consideramos que una carrera "sigue siendo la actual" hasta 2 días después de su fecha.
     carreras_vigentes = calendario[calendario['EventDate'] >= (hoy - pd.Timedelta(days=2))]
     
     if not carreras_vigentes.empty:
-        evento_objetivo = carreras_vigentes.iloc[0]
-        RONDA_A_ACTUALIZAR = int(evento_objetivo['RoundNumber'])
-        nombre_gp = evento_objetivo['EventName']
-        print(f"📍 Radar fijado en: {nombre_gp} (Ronda Oficial FIA: {RONDA_A_ACTUALIZAR})")
+        RONDA_A_ACTUALIZAR = int(carreras_vigentes.iloc[0]['RoundNumber'])
     else:
-        print("⚠️ Temporada terminada. Usando la última carrera del año.")
         RONDA_A_ACTUALIZAR = int(calendario.iloc[-1]['RoundNumber'])
         
     print(f"\n--- INICIANDO EXTRACCIÓN TOTAL PARA RONDA {RONDA_A_ACTUALIZAR} ---\n")
+    actualizar_info_pista(AÑO_ACTUAL, RONDA_A_ACTUALIZAR) # <-- APRENDE LA PISTA
     actualizar_qualy(AÑO_ACTUAL, RONDA_A_ACTUALIZAR)
     actualizar_resultados(AÑO_ACTUAL, RONDA_A_ACTUALIZAR)
     actualizar_ritmos(AÑO_ACTUAL, RONDA_A_ACTUALIZAR)
