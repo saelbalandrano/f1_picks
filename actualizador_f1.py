@@ -19,28 +19,28 @@ if not os.path.exists(cache_dir):
 fastf1.Cache.enable_cache(cache_dir)
 
 # ==========================================
-# 🔍 TRADUCTOR DE RONDAS (FIA vs SUPABASE)
+# 🔍 TRADUCTOR DE RONDAS (SABUESO AGRESIVO)
 # ==========================================
-def obtener_ronda_db(loc_fia, pais_fia, fia_round):
+def obtener_ronda_db(evento_fia):
     res = supabase.table("events").select("round_number, country, circuit_name").execute()
+    fia_round = int(evento_fia['RoundNumber'])
     if not res.data: return fia_round
     
-    loc_fia_clean = str(loc_fia).lower().strip()
-    pais_fia_clean = str(pais_fia).lower().strip()
+    # Juntamos TODAS las palabras clave que nos da la FIA (Nombre, Ciudad, País)
+    palabras_fia = str(evento_fia['EventName']).lower().split() + \
+                   str(evento_fia['Location']).lower().split() + \
+                   str(evento_fia['Country']).lower().split()
     
-    # 1. Búsqueda de alta precisión: Por Ciudad / Nombre del Circuito
     for row in res.data:
-        circ_db = str(row.get('circuit_name', '')).lower()
-        if loc_fia_clean in circ_db:
-            return row['round_number']
-            
-    # 2. Búsqueda secundaria: Por País (Para países con 1 sola carrera)
-    for row in res.data:
-        pais_db = str(row.get('country', '')).lower()
-        if pais_fia_clean == pais_db or pais_fia_clean in pais_db or pais_db in pais_fia_clean:
-            return row['round_number']
-            
-    return fia_round # Si no encuentra nada, usa el número de la FIA por defecto
+        # Juntamos las palabras de tu base de datos
+        texto_db = str(row.get('circuit_name', '')).lower() + " " + str(row.get('country', '')).lower()
+        
+        # Si alguna palabra importante (más de 3 letras, como 'miami', 'austin', 'monza') coincide, ¡bingo!
+        for palabra in palabras_fia:
+            if len(palabra) > 3 and palabra in texto_db:
+                return row['round_number']
+                
+    return fia_round # Si de plano nada coincide, usa el de la FIA
 
 # ==========================================
 # ⏱️ 1. CLASIFICACIÓN (QUALY / SQ)
@@ -188,12 +188,11 @@ if __name__ == "__main__":
     RONDA_FIA = int(evento_objetivo['RoundNumber'])
     nombre_gp = evento_objetivo['EventName']
     loc_fia = evento_objetivo['Location']
-    pais_fia = evento_objetivo['Country']
     
     print(f"📍 GP Objetivo: {nombre_gp} | Ciudad: {loc_fia}")
     
     # ¡LA MAGIA OCURRE AQUÍ!
-    RONDA_DB = obtener_ronda_db(loc_fia, pais_fia, RONDA_FIA)
+    RONDA_DB = obtener_ronda_db(evento_objetivo)
     
     print(f"⚖️ TRADUCCIÓN: FIA dice Ronda {RONDA_FIA} ---> Supabase dice Ronda {RONDA_DB}")
     print(f"--- INICIANDO EXTRACCIÓN TOTAL ---\n")
