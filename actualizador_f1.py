@@ -122,12 +122,26 @@ def actualizar_ritmos(year, round_num):
     except Exception as e: print(f"❌ Error Ritmos: {e}\n")
 
 # ==========================================
-# 🚀 DISPARADOR MAESTRO
+# 🚀 DISPARADOR MAESTRO AUTÓNOMO
 # ==========================================
+import datetime
+
 if __name__ == "__main__":
     AÑO_ACTUAL = 2026
-    RONDA_A_ACTUALIZAR = 3  # Vamos a probar re-escribiendo Japón
     
+    # 1. Obtenemos el calendario oficial de la FIA
+    calendario = fastf1.get_event_schedule(AÑO_ACTUAL)
+    
+    # 2. Comparamos con la fecha actual para saber qué carrera acaba de pasar
+    hoy = pd.Timestamp.now()
+    carreras_completadas = calendario[calendario['EventDate'] < hoy]
+    
+    # 3. Extraemos el número de la última ronda disputada
+    if no carreras_completadas.empty:
+        RONDA_A_ACTUALIZAR = int(carreras_completadas.iloc[-1]['RoundNumber'])
+    else:
+        RONDA_A_ACTUALIZAR = 1
+        
     print(f"--- INICIANDO ACTUALIZACIÓN TOTAL PARA RONDA {RONDA_A_ACTUALIZAR} ---\n")
     actualizar_qualy(AÑO_ACTUAL, RONDA_A_ACTUALIZAR)
     actualizar_resultados(AÑO_ACTUAL, RONDA_A_ACTUALIZAR)
