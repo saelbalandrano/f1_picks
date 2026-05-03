@@ -125,6 +125,7 @@ def actualizar_ritmos(year, round_num):
 # 🚀 DISPARADOR MAESTRO AUTÓNOMO
 # ==========================================
 import datetime
+import pandas as pd
 
 if __name__ == "__main__":
     AÑO_ACTUAL = 2026
@@ -137,7 +138,7 @@ if __name__ == "__main__":
     carreras_completadas = calendario[calendario['EventDate'] < hoy]
     
     # 3. Extraemos el número de la última ronda disputada
-    if no carreras_completadas.empty:
+    if not carreras_completadas.empty:  # <--- AQUÍ ESTABA EL ERROR
         RONDA_A_ACTUALIZAR = int(carreras_completadas.iloc[-1]['RoundNumber'])
     else:
         RONDA_A_ACTUALIZAR = 1
