@@ -31,16 +31,9 @@ supabase = init_connection()
 # ==========================================
 # 📅 CALENDARIO DINÁMICO DESDE LA NUBE
 # ==========================================
-PHYSICS_FALLBACK = {
-    1: {"laps": 58, "diff": 1.10},
-    2: {"laps": 56, "diff": 0.90},
-    3: {"laps": 53, "diff": 1.20},
-    4: {"laps": 57, "diff": 1.15}, 
-}
-
 @st.cache_data(ttl=86400) 
 def load_dynamic_calendar():
-    res = supabase.table("events").select("round_number, country, circuit_name, status").order("round_number").execute()
+    res = supabase.table("events").select("round_number, country, circuit_name, status, total_laps, track_diff").order("round_number").execute()
     cal = {}
     if res.data:
         for row in res.data:
@@ -49,8 +42,9 @@ def load_dynamic_calendar():
                 cal[r_num] = {
                     "name": f"Ronda {r_num}: {row['country']} - {row['circuit_name']}",
                     "circuit_name": row['circuit_name'],
-                    "laps": PHYSICS_FALLBACK.get(r_num, {"laps": 50})["laps"],
-                    "diff": PHYSICS_FALLBACK.get(r_num, {"diff": 1.0})["diff"]
+                    # Si ya extrajo las vueltas las usa, si no, usa 50 temporalmente
+                    "laps": row.get('total_laps') or 50, 
+                    "diff": float(row.get('track_diff') or 1.0)
                 }
     return cal
 
@@ -59,7 +53,7 @@ CALENDAR = load_dynamic_calendar()
 if not CALENDAR:
     st.error("⚠️ No se pudo cargar el calendario. Revisa la conexión a la tabla 'events'.")
     st.stop()
-
+    
 # 2. CSS Inyectado (AHORA CON DISEÑO RESPONSIVO MÓVIL)
 st.markdown("""
 <style>
