@@ -4,8 +4,9 @@ import pandas as pd
 import numpy as np
 from supabase import create_client
 from dotenv import load_dotenv
+import datetime
 
-print("🏎️ Encendiendo el motor F1 (MODO SINCRONIZACIÓN INTELIGENTE)...")
+print("🏎️ Encendiendo el motor de actualización F1 (MODO PRE-CARRERA)...")
 
 # 1. Configuración inicial
 load_dotenv()
@@ -18,58 +19,28 @@ if not os.path.exists(cache_dir):
     os.makedirs(cache_dir)
 fastf1.Cache.enable_cache(cache_dir)
 
-# ==========================================
-# 🔍 TRADUCTOR DE RONDAS (SABUESO AGRESIVO)
-# ==========================================
-def obtener_ronda_db(evento_fia):
-    res = supabase.table("events").select("round_number, country, circuit_name").execute()
-    fia_round = int(evento_fia['RoundNumber'])
-    if not res.data: return fia_round
-    
-    # Juntamos TODAS las palabras clave que nos da la FIA (Nombre, Ciudad, País)
-    palabras_fia = str(evento_fia['EventName']).lower().split() + \
-                   str(evento_fia['Location']).lower().split() + \
-                   str(evento_fia['Country']).lower().split()
-    
-    for row in res.data:
-        # Juntamos las palabras de tu base de datos
-        texto_db = str(row.get('circuit_name', '')).lower() + " " + str(row.get('country', '')).lower()
-        
-        # Si alguna palabra importante (más de 3 letras, como 'miami', 'austin', 'monza') coincide, ¡bingo!
-        for palabra in palabras_fia:
-            if len(palabra) > 3 and palabra in texto_db:
-                return row['round_number']
-                
-    return fia_round # Si de plano nada coincide, usa el de la FIA
+print("✅ Conexión y Caché listos.\n")
 
 # ==========================================
-# ⏱️ 1. CLASIFICACIÓN (QUALY / SQ)
+# ⏱️ 1. CLASIFICACIÓN (QUALY)
 # ==========================================
-def actualizar_qualy(year, fia_round, db_round):
-    print(f"⏱️ Procesando Qualy... (Guardando en ID {db_round})")
+def actualizar_qualy(year, round_num):
+    print(f"⏱️ Procesando Clasificación (Ronda {round_num})...")
     try:
-        session = fastf1.get_session(year, fia_round, 'Q')
+        session = fastf1.get_session(year, round_num, 'Q')
         session.load(telemetry=False, weather=False) 
         resultados = session.results
         
         if resultados.empty:
-            print("⚠️ Qualy principal vacía. Intentando con Sprint Qualy (SQ)...")
-            try:
-                session = fastf1.get_session(year, fia_round, 'SQ')
-                session.load(telemetry=False, weather=False)
-                resultados = session.results
-            except:
-                return
+            print("⚠️ La Qualy aún no se ha corrido o no está disponible.")
+            return
 
-        pole_time = resultados.iloc[0]['Q3'] if 'Q3' in resultados.columns and not pd.isnull(resultados.iloc[0]['Q3']) else resultados.iloc[0].get('SQ3', None)
+        pole_time = resultados.iloc[0]['Q3'] 
         
         datos_qualy = []
         for index, row in resultados.iterrows():
             code = row['Abbreviation']
-            if 'Q3' in row:
-                best_time = row['Q3'] if not pd.isnull(row['Q3']) else (row['Q2'] if not pd.isnull(row['Q2']) else row['Q1'])
-            else:
-                best_time = row['SQ3'] if not pd.isnull(row['SQ3']) else (row['SQ2'] if not pd.isnull(row['SQ2']) else row['SQ1'])
+            best_time = row['Q3'] if not pd.isnull(row['Q3']) else (row['Q2'] if not pd.isnull(row['Q2']) else row['Q1'])
             
             if pd.isnull(best_time) or pd.isnull(pole_time):
                 delta_s, best_lap_s = 5.0, 99.999 
@@ -77,128 +48,122 @@ def actualizar_qualy(year, fia_round, db_round):
                 delta_s = (best_time - pole_time).total_seconds()
                 best_lap_s = best_time.total_seconds()
                 
-            datos_qualy.append({"round_number": db_round, "code": code, "delta_to_pole_s": round(delta_s, 3), "best_lap_s": round(best_lap_s, 3)})
+            datos_qualy.append({"round_number": round_num, "code": code, "delta_to_pole_s": round(delta_s, 3), "best_lap_s": round(best_lap_s, 3)})
             
-        supabase.table("qualy_profiles").delete().eq("round_number", db_round).execute()
+        supabase.table("qualy_profiles").delete().eq("round_number", round_num).execute()
         supabase.table("qualy_profiles").insert(datos_qualy).execute()
-        print(f"✅ Parrilla guardada correctamente.\n")
+        print(f"✅ Qualy guardada.\n")
     except Exception as e: print(f"❌ Error Qualy: {e}\n")
 
 # ==========================================
-# 🏆 2. RESULTADOS OFICIALES
+# 🏆 2. RESULTADOS OFICIALES (SOLO SI YA PASÓ)
 # ==========================================
-def actualizar_resultados(year, fia_round, db_round):
-    print(f"🏆 Buscando Resultados... (Guardando en ID {db_round})")
+def actualizar_resultados(year, round_num):
+    print(f"🏆 Intentando buscar Resultados Oficiales (Ronda {round_num})...")
     try:
-        session = fastf1.get_session(year, fia_round, 'R')
+        session = fastf1.get_session(year, round_num, 'R')
         session.load(telemetry=False, weather=False)
-        if session.results.empty: return
+        resultados = session.results
+        
+        if resultados.empty:
+            print("⚠️ La carrera aún no tiene resultados. Omitiendo por ahora.\n")
+            return
             
         datos_oficiales = []
-        for index, row in session.results.iterrows():
-            pos = row['Position'] if not pd.isnull(row['Position']) else 20.0
-            datos_oficiales.append({"round_number": db_round, "code": row['Abbreviation'], "official_position": int(pos)})
+        for index, row in resultados.iterrows():
+            code = row['Abbreviation']
+            pos = row['Position']
             
-        supabase.table("official_race_results").delete().eq("round_number", db_round).execute()
+            if pd.isnull(pos): pos = 20.0
+                
+            datos_oficiales.append({"round_number": round_num, "code": code, "official_position": int(pos)})
+            
+        supabase.table("official_race_results").delete().eq("round_number", round_num).execute()
         supabase.table("official_race_results").insert(datos_oficiales).execute()
-        print(f"✅ Resultados Oficiales guardados.\n")
-    except Exception: print(f"⚠️ La carrera principal no se ha corrido aún.\n")
+        print(f"✅ Resultados guardados.\n")
+    except Exception as e: print(f"⚠️ La carrera no se ha corrido aún o no hay datos oficiales.\n")
 
 # ==========================================
-# 📊 3. RITMOS MULTI-SESIÓN
+# 📊 3. RITMOS Y DEGRADACIÓN (DE PRÁCTICAS)
 # ==========================================
-def actualizar_ritmos(year, fia_round, db_round):
-    print(f"📊 Recolectando telemetría... (Guardando en ID {db_round})")
+def actualizar_ritmos(year, round_num):
+    print(f"📊 Procesando Ritmos de PRÁCTICAS PRE-CARRERA (Ronda {round_num})...")
     try:
-        vueltas_acumuladas = []
-        for sesion_nombre in ['FP1', 'FP2', 'FP3', 'SQ', 'S']:
-            try:
-                session = fastf1.get_session(year, fia_round, sesion_nombre)
-                session.load(telemetry=False, weather=False)
-                if not session.laps.empty: vueltas_acumuladas.append(session.laps.pick_quicklaps())
-            except: pass 
-        
-        if not vueltas_acumuladas: return
+        # 🚨 CAMBIO MAESTRO: Buscamos en Práctica 2 (donde hacen tandas largas)
+        try:
+            session = fastf1.get_session(year, round_num, 'FP2')
+            session.load(telemetry=False, weather=False)
+        except:
+            print("No se encontró FP2 (quizás es fin de semana Sprint). Intentando con FP1...")
+            session = fastf1.get_session(year, round_num, 'FP1')
+            session.load(telemetry=False, weather=False)
             
-        laps_master = pd.concat(vueltas_acumuladas, ignore_index=True)
-        datos_ritmo = []
+        laps = session.laps.pick_quicklaps() 
         
-        for piloto in laps_master['Driver'].unique():
-            vueltas_piloto = laps_master[laps_master['Driver'] == piloto]
-            for comp in vueltas_piloto['Compound'].dropna().unique():
-                v_c = vueltas_piloto[vueltas_piloto['Compound'] == comp]
-                if len(v_c) < 3: continue 
+        if laps.empty:
+            print("⚠️ Aún no hay vueltas válidas en las prácticas.")
+            return
+            
+        datos_ritmo = []
+        pilotos = laps['Driver'].unique()
+        
+        for piloto in pilotos:
+            vueltas_piloto = laps[laps['Driver'] == piloto]
+            compuestos = vueltas_piloto['Compound'].dropna().unique()
+            
+            for comp in compuestos:
+                vueltas_comp = vueltas_piloto[vueltas_piloto['Compound'] == comp]
+                if len(vueltas_comp) < 3: continue 
                 
-                base_pace = v_c['LapTime'].dt.total_seconds().median()
-                deg = np.polyfit(np.arange(len(v_c)), v_c['LapTime'].dt.total_seconds().values, 1)[0] if len(v_c) >= 5 else 0.05 
+                base_pace = vueltas_comp['LapTime'].dt.total_seconds().median()
+                
+                if len(vueltas_comp) >= 5:
+                    x = np.arange(len(vueltas_comp))
+                    y = vueltas_comp['LapTime'].dt.total_seconds().values
+                    deg = np.polyfit(x, y, 1)[0]
+                    deg = max(0.02, min(deg, 0.15)) 
+                else:
+                    deg = 0.05 
                 
                 datos_ritmo.append({
-                    "round_number": db_round, "code": piloto, "compound": comp,
-                    "base_pace_s": round(base_pace, 3), "deg_per_lap": round(max(0.02, min(deg, 0.15)), 3),
-                    "deg_ms_per_lap": int(deg * 1000), "total_valid_sectors": len(v_c)
+                    "round_number": round_num,
+                    "code": piloto,
+                    "compound": comp,
+                    "base_pace_s": round(base_pace, 3),
+                    "deg_per_lap": round(deg, 3),
+                    "deg_ms_per_lap": int(deg * 1000),
+                    "total_valid_sectors": len(vueltas_comp)
                 })
         
         if datos_ritmo:
-            supabase.table("race_profiles").delete().eq("round_number", db_round).execute()
+            supabase.table("race_profiles").delete().eq("round_number", round_num).execute()
             supabase.table("race_profiles").insert(datos_ritmo).execute()
-            print(f"✅ Ritmos ({len(datos_ritmo)} perfiles) guardados.\n")
+            print(f"✅ Ritmos de Prácticas guardados.\n")
+        else:
+            print("⚠️ No se recolectaron ritmos suficientes.")
+            
     except Exception as e: print(f"❌ Error Ritmos: {e}\n")
 
 # ==========================================
-# 🧠 4. AUTO-APRENDIZAJE DE PISTA
-# ==========================================
-def actualizar_info_pista(year, fia_round, db_round):
-    print(f"🌍 Analizando metadata del circuito... (Guardando en ID {db_round})")
-    try:
-        event = fastf1.get_event(year, fia_round)
-        event_name = event['EventName']
-        laps = 50 
-        
-        try:
-            print(f"   -> Consultando archivo histórico de {event_name} ({year-1})...")
-            hist_session = fastf1.get_session(year - 1, event_name, 'R')
-            hist_session.load(telemetry=False, weather=False)
-            laps = int(hist_session.results['Laps'].max())
-        except:
-            print("   -> No hay datos del año pasado. Usando aproximación.")
-        
-        supabase.table("events").update({"total_laps": laps}).eq("round_number", db_round).execute()
-        print(f"✅ Pista actualizada: {laps} Vueltas.\n")
-    except Exception as e:
-        print(f"❌ Error al calcular metadata de pista: {e}")
-
-# ==========================================
-# 🚀 DISPARADOR MAESTRO 
+# 🚀 DISPARADOR MAESTRO AUTÓNOMO (MODO PRE-CARRERA)
 # ==========================================
 if __name__ == "__main__":
     AÑO_ACTUAL = 2026
     
     calendario = fastf1.get_event_schedule(AÑO_ACTUAL)
-    calendario = calendario[calendario['EventFormat'] != 'testing']
-    calendario['EventDate'] = pd.to_datetime(calendario['EventDate']).dt.tz_localize(None)
-    hoy = pd.Timestamp.now().tz_localize(None)
+    hoy = pd.Timestamp.now(tz='UTC')
     
-    carreras_vigentes = calendario[calendario['EventDate'] >= (hoy - pd.Timedelta(days=2))]
+    # 🚨 CAMBIO MAESTRO: Buscamos el evento que se corre ESTE MISMO fin de semana.
+    # Filtramos las carreras cuyo domingo sea de hace 2 días para el futuro.
+    eventos_vigentes = calendario[calendario['EventDate'] >= (hoy - pd.Timedelta(days=2))]
     
-    if not carreras_vigentes.empty:
-        evento_objetivo = carreras_vigentes.iloc[0]
+    if not eventos_vigentes.empty:
+        RONDA_A_ACTUALIZAR = int(eventos_vigentes.iloc[0]['RoundNumber'])
     else:
-        evento_objetivo = calendario.iloc[-1]
+        RONDA_A_ACTUALIZAR = 1
         
-    RONDA_FIA = int(evento_objetivo['RoundNumber'])
-    nombre_gp = evento_objetivo['EventName']
-    loc_fia = evento_objetivo['Location']
-    
-    print(f"📍 GP Objetivo: {nombre_gp} | Ciudad: {loc_fia}")
-    
-    # ¡LA MAGIA OCURRE AQUÍ!
-    RONDA_DB = obtener_ronda_db(evento_objetivo)
-    
-    print(f"⚖️ TRADUCCIÓN: FIA dice Ronda {RONDA_FIA} ---> Supabase dice Ronda {RONDA_DB}")
-    print(f"--- INICIANDO EXTRACCIÓN TOTAL ---\n")
-    
-    actualizar_info_pista(AÑO_ACTUAL, RONDA_FIA, RONDA_DB)
-    actualizar_qualy(AÑO_ACTUAL, RONDA_FIA, RONDA_DB)
-    actualizar_resultados(AÑO_ACTUAL, RONDA_FIA, RONDA_DB)
-    actualizar_ritmos(AÑO_ACTUAL, RONDA_FIA, RONDA_DB)
+    print(f"--- INICIANDO EXTRACCIÓN PRE-CARRERA PARA RONDA {RONDA_A_ACTUALIZAR} ---\n")
+    actualizar_qualy(AÑO_ACTUAL, RONDA_A_ACTUALIZAR)
+    actualizar_resultados(AÑO_ACTUAL, RONDA_A_ACTUALIZAR)
+    actualizar_ritmos(AÑO_ACTUAL, RONDA_A_ACTUALIZAR)
     print("🏁 EXTRACCIÓN FINALIZADA 🏁")
