@@ -180,4 +180,53 @@ if __name__ == "__main__":
     actualizar_ritmos(AÑO_ACTUAL, RONDA_A_ACTUALIZAR)
     actualizar_qualy(AÑO_ACTUAL, RONDA_A_ACTUALIZAR)
     actualizar_resultados(AÑO_ACTUAL, RONDA_A_ACTUALIZAR)
-    print("🏁 ACTUALIZACIÓN COMPLETA FINALIZADA 🏁")
+    
+    print("\n🧠 CORRIENDO MOTOR DE PREDICCIÓN (MONTE CARLO) 🧠")
+    from ai_engine import run_ai_prediction_engine
+    
+    # Obtener el calendario para el motor
+    res_cal = supabase.table("events").select("round_number, country, circuit_name, status").execute()
+    CALENDAR = {}
+    PHYSICS_FALLBACK = {
+        1: {"laps": 58, "diff": 1.10}, 2: {"laps": 56, "diff": 0.90}, 
+        3: {"laps": 53, "diff": 1.20}, 4: {"laps": 57, "diff": 1.15}, 
+    }
+    if res_cal.data:
+        for row in res_cal.data:
+            if row['status'] != 'cancelled':
+                r_num = row['round_number']
+                CALENDAR[r_num] = {
+                    "name": f"Ronda {r_num}: {row['country']} - {row['circuit_name']}",
+                    "circuit_name": row['circuit_name'],
+                    "laps": PHYSICS_FALLBACK.get(r_num, {"laps": 50})["laps"],
+                    "diff": PHYSICS_FALLBACK.get(r_num, {"diff": 1.0})["diff"]
+                }
+                
+    df_ai = run_ai_prediction_engine(RONDA_A_ACTUALIZAR, supabase, CALENDAR)
+    
+    if not df_ai.empty:
+        records = []
+        race_name = CALENDAR.get(RONDA_A_ACTUALIZAR, {}).get("name", f"Ronda {RONDA_A_ACTUALIZAR}")
+        for _, row in df_ai.iterrows():
+            records.append({
+                "round_number": RONDA_A_ACTUALIZAR,
+                "race_name": race_name,
+                "code": row['code'],
+                "ai_predicted_pos": float(row['ai_predicted_pos']),
+                "ai_base_pace": float(row['ai_base_pace']),
+                "prob_win": f"{row['prob_win']:.1f}%",
+                "prob_podium": f"{row['prob_podium']:.1f}%",
+                "prob_top6": f"{row['prob_top6']:.1f}%",
+                "prob_top10": f"{row['prob_top10']:.1f}%"
+            })
+            
+        try:
+            supabase.table("ai_predictions").delete().eq("round_number", RONDA_A_ACTUALIZAR).execute()
+            supabase.table("ai_predictions").insert(records).execute()
+            print("✅ Predicciones guardadas exitosamente en Supabase (tabla: ai_predictions)!")
+        except Exception as e:
+            print(f"❌ Error al guardar predicciones en Supabase: {e}")
+    else:
+        print("⚠️ No se pudieron generar predicciones (Faltan datos de base).")
+
+    print("\n🏁 ACTUALIZACIÓN COMPLETA FINALIZADA 🏁")
