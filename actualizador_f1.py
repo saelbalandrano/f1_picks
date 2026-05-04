@@ -5,7 +5,7 @@ import numpy as np
 from supabase import create_client
 from dotenv import load_dotenv
 
-print("🏎️ Encendiendo el motor de actualización F1...")
+print("🏎️ Encendiendo el motor de actualización F1 (MODO BLINDADO)...")
 
 # 1. Configuración inicial
 load_dotenv()
@@ -29,12 +29,28 @@ def actualizar_qualy(year, fia_round, db_round):
         session = fastf1.get_session(year, fia_round, 'Q')
         session.load(telemetry=False, weather=False) 
         resultados = session.results
-        pole_time = resultados.iloc[0]['Q3'] 
         
+        if resultados is None or resultados.empty:
+            print("⚠️ No hay datos de Qualy disponibles aún en FastF1.")
+            return
+
+        # Protección para buscar Q3 o SQ3 si es formato Sprint
+        pole_time = None
+        if 'Q3' in resultados.columns:
+            pole_time = resultados.iloc[0]['Q3']
+        elif 'SQ3' in resultados.columns:
+            pole_time = resultados.iloc[0]['SQ3']
+            
         datos_qualy = []
         for index, row in resultados.iterrows():
             code = row['Abbreviation']
-            best_time = row['Q3'] if not pd.isnull(row['Q3']) else (row['Q2'] if not pd.isnull(row['Q2']) else row['Q1'])
+            best_time = None
+            
+            # Buscar el mejor tiempo en cualquier bloque de Qualy
+            for q_col in ['Q3', 'Q2', 'Q1', 'SQ3', 'SQ2', 'SQ1']:
+                if q_col in row and not pd.isnull(row[q_col]):
+                    best_time = row[q_col]
+                    break
             
             if pd.isnull(best_time) or pd.isnull(pole_time):
                 delta_s, best_lap_s = 5.0, 99.999 
@@ -42,12 +58,22 @@ def actualizar_qualy(year, fia_round, db_round):
                 delta_s = (best_time - pole_time).total_seconds()
                 best_lap_s = best_time.total_seconds()
                 
-            datos_qualy.append({"round_number": db_round, "code": code, "delta_to_pole_s": round(delta_s, 3), "best_lap_s": round(best_lap_s, 3)})
+            datos_qualy.append({
+                "round_number": db_round, 
+                "code": code, 
+                "delta_to_pole_s": round(delta_s, 3), 
+                "best_lap_s": round(best_lap_s, 3)
+            })
             
-        supabase.table("qualy_profiles").delete().eq("round_number", db_round).execute()
-        supabase.table("qualy_profiles").insert(datos_qualy).execute()
-        print(f"✅ Qualy guardada.\n")
-    except Exception as e: print(f"❌ Error Qualy: {e}\n")
+        if datos_qualy:
+            supabase.table("qualy_profiles").delete().eq("round_number", db_round).execute()
+            supabase.table("qualy_profiles").insert(datos_qualy).execute()
+            print(f"✅ Qualy guardada ({len(datos_qualy)} pilotos).")
+        else:
+            print("⚠️ Datos de Qualy procesados pero vacíos.")
+            
+    except Exception as e: 
+        print(f"❌ Error interno en Qualy: {e}")
 
 # ==========================================
 # 🏆 2. RESULTADOS OFICIALES
@@ -59,6 +85,10 @@ def actualizar_resultados(year, fia_round, db_round):
         session.load(telemetry=False, weather=False)
         resultados = session.results
         
+        if resultados is None or resultados.empty:
+            print("⚠️ No hay resultados de carrera disponibles aún en FastF1.")
+            return
+            
         datos_oficiales = []
         for index, row in resultados.iterrows():
             code = row['Abbreviation']
@@ -66,38 +96,50 @@ def actualizar_resultados(year, fia_round, db_round):
             
             if pd.isnull(pos): pos = 20.0
                 
-            datos_oficiales.append({"round_number": db_round, "code": code, "official_position": int(pos)})
+            datos_oficiales.append({
+                "round_number": db_round, 
+                "code": code, 
+                "official_position": int(pos)
+            })
             
-        supabase.table("official_race_results").delete().eq("round_number", db_round).execute()
-        supabase.table("official_race_results").insert(datos_oficiales).execute()
-        print(f"✅ Resultados guardados.\n")
-    except Exception as e: print(f"❌ Error Resultados: {e}\n")
+        if datos_oficiales:
+            supabase.table("official_race_results").delete().eq("round_number", db_round).execute()
+            supabase.table("official_race_results").insert(datos_oficiales).execute()
+            print(f"✅ Resultados guardados ({len(datos_oficiales)} pilotos).")
+        else:
+            print("⚠️ Resultados procesados pero vacíos.")
+            
+    except Exception as e: 
+        print(f"❌ Error interno en Resultados: {e}")
 
 # ==========================================
-# 📊 3. RITMOS MULTI-SESIÓN (PRÁCTICAS Y SPRINT)
+# 📊 3. RITMOS Y DEGRADACIÓN MULTI-SESIÓN
 # ==========================================
 def actualizar_ritmos(year, fia_round, db_round):
-    print(f"📊 Procesando Ritmos Multi-Sesión (Descarga: {fia_round} | Guarda: {db_round})...")
+    print(f"📊 Procesando Ritmos (Descarga: {fia_round} | Guarda: {db_round})...")
     try:
         vueltas_acumuladas = []
         
-        # BÚCLE MÁGICO: Busca en todas las sesiones previas a la carrera
-        sesiones_pre_carrera = ['FP1', 'FP2', 'FP3', 'SQ', 'S']
-        for sesion_nombre in sesiones_pre_carrera:
+        # BÚCLE DEVORADOR: Busca absolutamente en todas las sesiones del fin de semana
+        sesiones_todas = ['FP1', 'FP2', 'FP3', 'SQ', 'S', 'Q', 'R']
+        
+        for sesion_nombre in sesiones_todas:
             try:
                 session = fastf1.get_session(year, fia_round, sesion_nombre)
                 session.load(telemetry=False, weather=False)
-                if not session.laps.empty:
-                    vueltas_acumuladas.append(session.laps.pick_quicklaps())
-                    print(f"   -> Datos extraídos de: {sesion_nombre}")
-            except:
-                pass # Si la sesión no existe, la salta en silencio
+                
+                if session.laps is not None and not session.laps.empty:
+                    vueltas_validas = session.laps.pick_quicklaps()
+                    if not vueltas_validas.empty:
+                        vueltas_acumuladas.append(vueltas_validas)
+                        print(f"   -> Vueltas extraídas con éxito de: {sesion_nombre}")
+            except Exception:
+                pass # Silencioso si la sesión simplemente no existió en este GP
                 
         if not vueltas_acumuladas:
-            print("⚠️ No se encontró telemetría en ninguna sesión.")
+            print("⚠️ Falla Crítica: No se encontró telemetría útil en ninguna sesión de FastF1.")
             return
 
-        # Juntamos todas las vueltas del fin de semana
         laps_master = pd.concat(vueltas_acumuladas, ignore_index=True)
         datos_ritmo = []
         pilotos = laps_master['Driver'].unique()
@@ -108,6 +150,8 @@ def actualizar_ritmos(year, fia_round, db_round):
             
             for comp in compuestos:
                 vueltas_comp = vueltas_piloto[vueltas_piloto['Compound'] == comp]
+                
+                # Exigimos al menos 3 vueltas para poder hacer una matemática real
                 if len(vueltas_comp) < 3: continue 
                 
                 base_pace = vueltas_comp['LapTime'].dt.total_seconds().median()
@@ -130,10 +174,16 @@ def actualizar_ritmos(year, fia_round, db_round):
                     "total_valid_sectors": len(vueltas_comp)
                 })
         
-        supabase.table("race_profiles").delete().eq("round_number", db_round).execute()
-        supabase.table("race_profiles").insert(datos_ritmo).execute()
-        print(f"✅ Ritmos guardados.\n")
-    except Exception as e: print(f"❌ Error Ritmos: {e}\n")
+        # CANDADO ANTI-CRASH: Solo inserta si hay datos reales
+        if datos_ritmo:
+            supabase.table("race_profiles").delete().eq("round_number", db_round).execute()
+            supabase.table("race_profiles").insert(datos_ritmo).execute()
+            print(f"✅ Ritmos consolidados ({len(datos_ritmo)} perfiles de llantas guardados).")
+        else:
+            print("⚠️ Se descargaron vueltas pero ningún piloto hizo 3 seguidas con la misma llanta.")
+            
+    except Exception as e: 
+        print(f"❌ Error interno en Ritmos: {e}")
 
 # ==========================================
 # 🚀 DISPARADOR MAESTRO (CONTROL MANUAL)
@@ -145,7 +195,7 @@ if __name__ == "__main__":
     # ⚙️ CONTROL DE DESFASE: Modifica esto para cada carrera
     # ---------------------------------------------------------
     RONDA_FIA = 6  # El número oficial de la FIA (Miami = 6)
-    RONDA_DB  = 4  # El número en TU base de datos (Miami = 4)
+    RONDA_DB  = 4  # El número en TU base de datos limpia (Miami = 4)
     # ---------------------------------------------------------
     
     print(f"--- INICIANDO ACTUALIZACIÓN TOTAL ---\n")
@@ -155,4 +205,4 @@ if __name__ == "__main__":
     actualizar_qualy(AÑO_ACTUAL, RONDA_FIA, RONDA_DB)
     actualizar_resultados(AÑO_ACTUAL, RONDA_FIA, RONDA_DB)
     actualizar_ritmos(AÑO_ACTUAL, RONDA_FIA, RONDA_DB)
-    print("🏁 ACTUALIZACIÓN COMPLETA FINALIZADA 🏁")
+    print("\n🏁 ACTUALIZACIÓN COMPLETA FINALIZADA 🏁")
