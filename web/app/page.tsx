@@ -5,7 +5,9 @@ export const revalidate = 0;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey)
+
+// Create client conditionally so the Vercel build doesn't crash if vars are forgotten
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 const TEAM_COLORS: Record<string, string> = {
   "RBR": "#3671C6", "FER": "#E8002D", "MCL": "#FF8000",
@@ -21,6 +23,23 @@ const TEAM_COLORS: Record<string, string> = {
 };
 
 export default async function Home() {
+  if (!supabase) {
+    return (
+      <div className="min-h-screen bg-[#0b0f12] text-white flex items-center justify-center font-sans">
+        <div className="text-center p-8 bg-white/5 border border-red-500 rounded-xl max-w-xl">
+          <h1 className="text-3xl font-bold text-red-500 mb-4">Config Error</h1>
+          <p className="text-zinc-300">
+            Missing Supabase environment variables in Vercel. Go to Settings &gt; Environment Variables and add:
+          </p>
+          <ul className="mt-4 text-left font-mono text-sm text-yellow-400 inline-block">
+            <li>NEXT_PUBLIC_SUPABASE_URL</li>
+            <li>NEXT_PUBLIC_SUPABASE_ANON_KEY</li>
+          </ul>
+        </div>
+      </div>
+    )
+  }
+
   const { data: predictions, error } = await supabase
     .from('ai_predictions')
     .select('*')
