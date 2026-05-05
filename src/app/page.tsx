@@ -79,7 +79,9 @@ export default async function Home() {
       <main className="max-w-7xl mx-auto mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {predictions.map((p, index) => {
           const color = TEAM_COLORS[p.code] || "#ffffff";
-          const logoUrl = STORAGE_URL + "logos/" + p.team.replace(/\s+/g, '_') + ".png";
+          const teamName = p.team || "Unknown";
+          const driverName = p.driver_name || p.code || "Unknown";
+          const logoUrl = STORAGE_URL + "logos/" + teamName.replace(/\s+/g, '_') + ".png";
           const photoUrl = STORAGE_URL + "drivers/" + p.code + ".png";
           
           return (
@@ -98,9 +100,9 @@ export default async function Home() {
                   </div>
                   <div>
                     <h2 className="text-xl font-bold uppercase leading-none tracking-tight">
-                      {p.driver_name} <span className="text-xs text-zinc-500 font-mono ml-1">{p.code}</span>
+                      {driverName} <span className="text-xs text-zinc-500 font-mono ml-1">{p.code}</span>
                     </h2>
-                    <p className="text-[10px] text-zinc-400 uppercase tracking-widest mt-1">{p.team}</p>
+                    <p className="text-[10px] text-zinc-400 uppercase tracking-widest mt-1">{teamName}</p>
                   </div>
                 </div>
                 
