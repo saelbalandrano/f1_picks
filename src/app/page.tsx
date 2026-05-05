@@ -1,144 +1,85 @@
-import { createClient } from '@supabase/supabase-js'
-import Image from 'next/image'
+import { createClient } from '@supabase/supabase-js';
+import DashboardTabs from './DashboardTabs';
 
-export const revalidate = 0;
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
-// Create client conditionally so the Vercel build doesn't crash if vars are forgotten
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
-
-const TEAM_COLORS: Record<string, string> = {
-  "RBR": "#3671C6", "FER": "#E8002D", "MCL": "#FF8000",
-  "MER": "#27F4D2", "AMR": "#229971", "ALP": "#0093CC",
-  "WIL": "#64C4FF", "RBU": "#6692FF", "HAA": "#B6BABD",
-  "SAU": "#52E252", "VER": "#3671C6", "PER": "#3671C6",
-  "LEC": "#E8002D", "SAI": "#E8002D", "NOR": "#FF8000",
-  "PIA": "#FF8000", "HAM": "#27F4D2", "RUS": "#27F4D2",
-  "ALO": "#229971", "STR": "#229971", "GAS": "#0093CC",
-  "OCO": "#0093CC", "ALB": "#64C4FF", "SAR": "#64C4FF",
-  "TSU": "#6692FF", "RIC": "#6692FF", "MAG": "#B6BABD",
-  "HUL": "#B6BABD", "BOT": "#52E252", "ZHO": "#52E252"
-};
+// Force dynamic rendering so it always fetches fresh data on load
+export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  if (!supabase) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  
+  if (!supabaseUrl || !supabaseKey) {
     return (
-      <div className="min-h-screen bg-[#0b0f12] text-white flex items-center justify-center font-sans">
-        <div className="text-center p-8 bg-white/5 border border-red-500 rounded-xl max-w-xl">
-          <h1 className="text-3xl font-bold text-red-500 mb-4">Config Error</h1>
-          <p className="text-zinc-300">
-            Missing Supabase environment variables in Vercel. Go to Settings &gt; Environment Variables and add:
-          </p>
-          <ul className="mt-4 text-left font-mono text-sm text-yellow-400 inline-block">
-            <li>NEXT_PUBLIC_SUPABASE_URL</li>
-            <li>NEXT_PUBLIC_SUPABASE_ANON_KEY</li>
-          </ul>
+      <div className="min-h-screen bg-[#101417] text-[#e0e2e8] font-sans p-8 flex flex-col items-center justify-center">
+        <div className="bg-[#1c2024] p-8 rounded-xl border border-[#93000a] max-w-lg text-center">
+          <h1 className="text-2xl font-bold text-[#ffb4ab] mb-4">Configuration Error</h1>
+          <p className="text-[#e0e2e8]">Missing Supabase environment variables.</p>
         </div>
       </div>
-    )
+    );
   }
+
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
   const { data: predictions, error } = await supabase
     .from('ai_predictions')
     .select('*')
-    .order('ai_predicted_pos', { ascending: true })
+    .order('ai_predicted_pos', { ascending: true });
 
   if (error || !predictions || predictions.length === 0) {
     return (
-      <div className="min-h-screen bg-[#0b0f12] text-white flex items-center justify-center font-sans">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-red-500 mb-4">No data available</h1>
-          <p className="text-zinc-400">Run the F1 AI Prediction Engine first.</p>
+      <div className="min-h-screen bg-[#101417] text-[#e0e2e8] font-sans p-8 flex flex-col items-center justify-center">
+        <div className="bg-[#1c2024] p-8 rounded-xl border border-[#849495] max-w-lg text-center">
+          <h1 className="text-2xl font-bold text-[#00f3ff] mb-4">Waiting for Data</h1>
+          <p className="text-[#b9cacb]">The AI prediction engine is currently processing the next race. Please check back later.</p>
         </div>
       </div>
-    )
+    );
   }
 
   const raceName = predictions[0]?.race_name || "Unknown Race";
-  const STORAGE_URL = supabaseUrl + "/storage/v1/object/public/f1_assets/";
+  const roundNumber = predictions[0]?.round_number || "?";
 
   return (
-    <div className="min-h-screen bg-[#0b0f12] bg-[radial-gradient(circle_at_50%_0%,#2a0000_0%,#0b0f12_40%)] text-white font-sans p-6">
-      
-      {/* Header section */}
-      <header className="max-w-7xl mx-auto py-8">
-        <div className="flex items-center gap-4">
-          <div className="bg-red-600 px-3 py-1 rounded text-xs font-bold tracking-widest uppercase shadow-[0_0_15px_rgba(255,0,0,0.5)]">
-            AI MONTE CARLO PROJECTION
-          </div>
-        </div>
-        <h1 className="text-5xl font-black mt-4 uppercase tracking-tighter">{raceName}</h1>
-        <p className="text-zinc-400 mt-2 font-mono uppercase tracking-widest text-sm border-l-2 border-red-500 pl-3">
-          10,000 Simulations / Dynamic Degradation
-        </p>
-      </header>
+    <div className="min-h-screen bg-[#101417] text-[#e0e2e8] font-sans selection:bg-[#00f3ff]/30">
+      {/* Background ambient glow */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-[#00f3ff] rounded-full blur-[150px] opacity-[0.03]"></div>
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-[#ea0011] rounded-full blur-[150px] opacity-[0.03]"></div>
+      </div>
 
-      {/* Grid container */}
-      <main className="max-w-7xl mx-auto mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {predictions.map((p, index) => {
-          const color = TEAM_COLORS[p.code] || "#ffffff";
-          const teamName = p.team || "Unknown";
-          const driverName = p.driver_name || p.code || "Unknown";
-          const logoUrl = STORAGE_URL + "logos/" + teamName.replace(/\s+/g, '_') + ".png";
-          const photoUrl = STORAGE_URL + "drivers/" + p.code + ".png";
-          
-          return (
-            <div 
-              key={p.code}
-              className="relative rounded-xl overflow-hidden bg-white/5 backdrop-blur-xl border border-red-500/20 group hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(255,0,0,0.3)] hover:border-red-500/50 transition-all duration-300 min-h-[220px] flex"
-            >
-              {/* Left Accent Bar */}
-              <div className="absolute left-0 top-0 bottom-0 w-1 z-10" style={{ backgroundColor: color }}></div>
-              
-              {/* Driver Section */}
-              <div className="flex-1 p-4 relative z-10 flex flex-col justify-start overflow-hidden">
-                <div className="flex items-center gap-3">
-                  <div className="text-2xl font-black text-red-500 bg-red-500/10 px-2 py-0.5 rounded border border-red-500/30 shadow-[0_0_10px_rgba(255,0,0,0.2)]">
-                    P{index + 1}
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold uppercase leading-none tracking-tight">
-                      {driverName} <span className="text-xs text-zinc-500 font-mono ml-1">{p.code}</span>
-                    </h2>
-                    <p className="text-[10px] text-zinc-400 uppercase tracking-widest mt-1">{teamName}</p>
-                  </div>
-                </div>
-                
-                {/* Driver Photo */}
-                <div className="absolute -bottom-4 -right-4 h-[180px] w-[180px] z-0 opacity-90 group-hover:scale-105 transition-transform duration-500 drop-shadow-2xl">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={photoUrl} alt={p.code} className="object-contain h-full w-full" />
-                </div>
+      {/* Header */}
+      <header className="relative z-10 border-b border-white/5 bg-[#181c20]/50 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <span className="bg-[#ea0011] text-white text-[10px] font-bold px-2 py-0.5 rounded-sm tracking-widest uppercase shadow-[0_0_10px_rgba(234,0,17,0.5)]">
+                  Live Telemetry
+                </span>
+                <span className="font-mono text-xs text-[#00f3ff] tracking-widest uppercase">
+                  Round {roundNumber}
+                </span>
               </div>
-
-              {/* Telemetry Stats Section */}
-              <div className="w-[220px] bg-black/40 p-4 pt-10 border-l border-white/5 z-10 flex flex-col justify-end">
-                <h3 className="text-[9px] text-red-400 font-bold tracking-[0.2em] uppercase mb-2">Market Probabilities</h3>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between items-center border-b border-white/5 pb-1">
-                    <span className="font-semibold text-zinc-300 uppercase">Win (P1)</span>
-                    <span className="font-mono font-bold text-green-400 drop-shadow-[0_0_5px_rgba(0,255,0,0.3)]">{p.prob_win}</span>
-                  </div>
-                  <div className="flex justify-between items-center border-b border-white/5 pb-1">
-                    <span className="font-semibold text-zinc-300 uppercase">Podium (Top 3)</span>
-                    <span className="font-mono font-bold text-green-400">{p.prob_podium}</span>
-                  </div>
-                  <div className="flex justify-between items-center border-b border-white/5 pb-1">
-                    <span className="font-semibold text-zinc-300 uppercase">Top 6 Finish</span>
-                    <span className="font-mono font-bold text-green-400">{p.prob_top6}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-zinc-300 uppercase">Points (Top 10)</span>
-                    <span className="font-mono font-bold text-green-400">{p.prob_top10}</span>
-                  </div>
-                </div>
+              <h1 className="text-4xl md:text-5xl font-black tracking-tight uppercase text-transparent bg-clip-text bg-gradient-to-r from-white to-[#b9cacb]">
+                {raceName}
+              </h1>
+            </div>
+            <div className="text-right">
+              <p className="font-mono text-xs text-zinc-500 tracking-widest uppercase mb-1">System Status</p>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[#00f3ff] shadow-[0_0_8px_#00f3ff] animate-pulse"></div>
+                <span className="font-mono text-sm text-[#00f3ff]">OPTIMAL</span>
               </div>
             </div>
-          )
-        })}
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="relative z-10 max-w-7xl mx-auto px-6 py-8">
+        <DashboardTabs predictions={predictions} />
       </main>
     </div>
-  )
+  );
 }
