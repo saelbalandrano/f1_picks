@@ -48,6 +48,59 @@ const getTeamLogo = (team: string) => {
   return mapping[team] || "Ferrari.webp";
 };
 
+const DRIVER_DETAILS: Record<string, { name: string, team: string }> = {
+  "LEC": { name: "Charles Leclerc", team: "Ferrari" },
+  "HAM": { name: "Lewis Hamilton", team: "Ferrari" },
+  "NOR": { name: "Lando Norris", team: "McLaren" },
+  "PIA": { name: "Oscar Piastri", team: "McLaren" },
+  "VER": { name: "Max Verstappen", team: "Red Bull Racing" },
+  "HAD": { name: "Isack Hadjar", team: "Red Bull Racing" },
+  "RUS": { name: "George Russell", team: "Mercedes" },
+  "ANT": { name: "Kimi Antonelli", team: "Mercedes" },
+  "ALO": { name: "Fernando Alonso", team: "Aston Martin" },
+  "STR": { name: "Lance Stroll", team: "Aston Martin" },
+  "ALB": { name: "Alexander Albon", team: "Williams" },
+  "SAI": { name: "Carlos Sainz", team: "Williams" },
+  "GAS": { name: "Pierre Gasly", team: "Alpine" },
+  "COL": { name: "Franco Colapinto", team: "Alpine" },
+  "HUL": { name: "Nico Hulkenberg", team: "Audi" },
+  "BOR": { name: "Gabriel Bortoleto", team: "Audi" },
+  "PER": { name: "Sergio Perez", team: "Racing Bulls" },
+  "BOT": { name: "Valtteri Bottas", team: "Racing Bulls" },
+  "LAW": { name: "Liam Lawson", team: "Haas F1 Team" },
+  "LIN": { name: "Arvid Lindblad", team: "Haas F1 Team" },
+  "OCO": { name: "Esteban Ocon", team: "Cadillac" },
+  "BEA": { name: "Oliver Bearman", team: "Cadillac" }
+};
+
+const TEAM_COLORS: Record<string, string> = {
+  "Ferrari": "#E8002D",
+  "Red Bull Racing": "#0600EF",
+  "Mercedes": "#00D2BE",
+  "McLaren": "#FF8700",
+  "Aston Martin": "#006F62",
+  "Alpine": "#0090FF",
+  "Williams": "#005AFF",
+  "Racing Bulls": "#6692FF",
+  "Haas F1 Team": "#FFFFFF",
+  "Audi": "#F1102A",
+  "Cadillac": "#FFD700"
+};
+
+const TEAM_ACRONYMS: Record<string, string> = {
+  "Ferrari": "FER",
+  "Red Bull Racing": "RBR",
+  "Mercedes": "MER",
+  "McLaren": "MCL",
+  "Aston Martin": "AST",
+  "Alpine": "ALP",
+  "Williams": "WIL",
+  "Racing Bulls": "RAB",
+  "Haas F1 Team": "HAS",
+  "Audi": "AUD",
+  "Cadillac": "CAD"
+};
+
 export default function DashboardTabs({ predictions, results }: { predictions: any[], results: any[] }) {
   const [activeTab, setActiveTab] = useState<'grid' | 'h2h' | 'audit'>('grid');
   
@@ -108,7 +161,6 @@ export default function DashboardTabs({ predictions, results }: { predictions: a
           {filteredPredictions.map((p, index) => {
             const details = DRIVER_DETAILS[p.code] || { name: p.code, team: "Unknown" };
             const teamColor = TEAM_COLORS[details.team] || "#00f3ff";
-            const teamAcronym = TEAM_ACRONYMS[details.team] || "UNK";
             const photoUrl = STORAGE_URL + "drivers/" + getDriverPhoto(p.code);
             const logoUrl = STORAGE_URL + "logos/" + getTeamLogo(details.team);
             
@@ -122,7 +174,6 @@ export default function DashboardTabs({ predictions, results }: { predictions: a
                 
                 {/* Driver Image Section */}
                 <div className="relative h-64 w-full bg-zinc-950 overflow-hidden">
-                  {/* Default Silhouette fallback, layered behind */}
                   <div className="absolute inset-0 flex items-end justify-center opacity-30 group-hover:opacity-10 transition-opacity">
                     <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full text-zinc-700 translate-y-8 scale-150">
                       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm0 14c-2.03 0-4.43-.82-6.14-2.88a9.947 9.947 0 0112.28 0C16.43 19.18 14.03 20 12 20z" />
@@ -136,15 +187,11 @@ export default function DashboardTabs({ predictions, results }: { predictions: a
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     className="object-cover object-top grayscale group-hover:grayscale-0 transition-all duration-700 scale-105 group-hover:scale-100 z-10"
                     unoptimized
-                    onError={(e) => {
-                      // Hide image if it fails to load
-                      e.currentTarget.style.display = 'none';
-                    }}
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#121619] via-transparent to-transparent z-20"></div>
                 </div>
 
-                {/* Details Section */}
                 <div className="p-6 -mt-12 relative z-30">
                   <div className="flex justify-between items-end mb-4">
                     <div className="flex-1">
@@ -203,7 +250,6 @@ export default function DashboardTabs({ predictions, results }: { predictions: a
       {activeTab === 'h2h' && (
         <div className="space-y-12">
           {(() => {
-            // Group predictions by team
             const teams: Record<string, any[]> = {};
             filteredPredictions.forEach(p => {
               const details = DRIVER_DETAILS[p.code] || { name: p.code, team: "Unknown" };
@@ -211,18 +257,16 @@ export default function DashboardTabs({ predictions, results }: { predictions: a
               teams[details.team].push({ ...p, details });
             });
 
-            return Object.entries(teams).map(([teamName, drivers], index) => {
-              if (drivers.length < 2) return null; // Need 2 drivers for H2H
+            return Object.entries(teams).map(([teamName, drivers]) => {
+              if (drivers.length < 2) return null;
               
               const d1 = drivers[0];
               const d2 = drivers[1];
               const d1Color = TEAM_COLORS[teamName] || "#00f3ff";
-              const d2Color = "#ea0011"; // Accent color for second driver
+              const d2Color = "#ea0011";
               
               return (
                 <div key={teamName} className="relative grid grid-cols-1 lg:grid-cols-11 gap-4 items-center">
-                  
-                  {/* Driver 1 */}
                   <div className="lg:col-span-5 group">
                     <div className="bg-zinc-900/40 backdrop-blur-md p-6 rounded-xl border-l-4 transition-all duration-500 hover:bg-white/5 border-t border-r border-b border-white/5" style={{ borderLeftColor: d1Color }}>
                       <div className="flex justify-between items-start mb-6">
@@ -253,7 +297,6 @@ export default function DashboardTabs({ predictions, results }: { predictions: a
                           </div>
                         </div>
                       </div>
-                      
                       <div className="space-y-2">
                         <div className="flex justify-between items-end font-mono text-[10px] text-zinc-400 mb-2">
                           <span>BASE PACE</span>
@@ -266,7 +309,6 @@ export default function DashboardTabs({ predictions, results }: { predictions: a
                     </div>
                   </div>
 
-                  {/* VS Centerpiece */}
                   <div className="lg:col-span-1 flex flex-col items-center justify-center z-10 py-8 lg:py-0">
                     <div className="relative w-20 h-20 flex items-center justify-center">
                       <div className="absolute inset-0 bg-[#E8002D]/20 rounded-full blur-2xl animate-pulse"></div>
@@ -276,7 +318,6 @@ export default function DashboardTabs({ predictions, results }: { predictions: a
                     </div>
                   </div>
 
-                  {/* Driver 2 */}
                   <div className="lg:col-span-5 group">
                      <div className="bg-zinc-900/40 backdrop-blur-md p-6 rounded-xl border-r-4 transition-all duration-500 hover:bg-white/5 border-t border-l border-b border-white/5" style={{ borderRightColor: d2Color }}>
                       <div className="flex justify-between items-start mb-6">
@@ -307,7 +348,6 @@ export default function DashboardTabs({ predictions, results }: { predictions: a
                           </div>
                         </div>
                       </div>
-                      
                       <div className="space-y-2">
                         <div className="flex justify-between items-end font-mono text-[10px] text-zinc-400 mb-2">
                            <span style={{ color: d2Color }}>{d2.ai_base_pace ? parseFloat(d2.ai_base_pace).toFixed(3) : "1:31.250"}</span>
@@ -351,21 +391,21 @@ export default function DashboardTabs({ predictions, results }: { predictions: a
                   <tbody className="divide-y divide-white/5">
                     {filteredResults.map(res => {
                       const pred = filteredPredictions.find(p => p.code === res.code);
-                      const predPos = pred ? Math.round(pred.ai_predicted_pos) : '-';
-                      const delta = pred ? Math.abs(predPos - res.official_position) : '-';
-                      const isAccurate = typeof delta === 'number' && delta <= 2;
+                      const predPos = pred ? Math.round(pred.ai_predicted_pos) : null;
+                      const delta = (predPos !== null) ? Math.abs(predPos - res.official_position) : null;
+                      const isAccurate = delta !== null && delta <= 2;
                       
                       return (
                         <tr key={res.id} className="hover:bg-white/5 transition-colors">
                           <td className="px-6 py-4 text-white font-bold">{res.code}</td>
-                          <td className="px-6 py-4 text-zinc-400">P{predPos}</td>
+                          <td className="px-6 py-4 text-zinc-400">{predPos !== null ? `P${predPos}` : '-'}</td>
                           <td className="px-6 py-4 text-[#E8002D] font-bold">P{res.official_position}</td>
-                          <td className="px-6 py-4 font-bold" style={{ color: typeof delta === 'number' && delta === 0 ? '#00F3FF' : '#ffffff' }}>
-                            {delta === 0 ? '±0' : `±${delta}`}
+                          <td className="px-6 py-4 font-bold" style={{ color: delta === 0 ? '#00F3FF' : '#ffffff' }}>
+                            {delta !== null ? (delta === 0 ? '±0' : `±${delta}`) : '-'}
                           </td>
                           <td className="px-6 py-4">
                             <span className={`px-2 py-1 rounded text-[10px] uppercase font-black ${isAccurate ? 'bg-[#00F3FF]/10 text-[#00F3FF]' : 'bg-red-500/10 text-red-500'}`}>
-                              {isAccurate ? 'Within Range' : 'Outlier'}
+                              {delta !== null ? (isAccurate ? 'Within Range' : 'Outlier') : 'N/A'}
                             </span>
                           </td>
                         </tr>
@@ -390,7 +430,6 @@ export default function DashboardTabs({ predictions, results }: { predictions: a
           )}
         </div>
       )}
-
     </div>
   );
 }
