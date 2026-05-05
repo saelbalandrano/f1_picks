@@ -4,58 +4,57 @@ import { useState } from 'react';
 import Image from 'next/image';
 
 const DRIVER_DETAILS: Record<string, { name: string, team: string }> = {
-  "VER": { name: "Max Verstappen", team: "Red Bull Racing" },
-  "PER": { name: "Sergio Perez", team: "Red Bull Racing" },
-  "LEC": { name: "Charles Leclerc", team: "Scuderia Ferrari" },
-  "SAI": { name: "Carlos Sainz", team: "Scuderia Ferrari" },
+  "LEC": { name: "Charles Leclerc", team: "Ferrari" },
+  "HAM": { name: "Lewis Hamilton", team: "Ferrari" },
   "NOR": { name: "Lando Norris", team: "McLaren" },
   "PIA": { name: "Oscar Piastri", team: "McLaren" },
-  "HAM": { name: "Lewis Hamilton", team: "Mercedes-AMG" },
-  "RUS": { name: "George Russell", team: "Mercedes-AMG" },
+  "VER": { name: "Max Verstappen", team: "Red Bull Racing" },
+  "HAD": { name: "Isack Hadjar", team: "Red Bull Racing" },
+  "RUS": { name: "George Russell", team: "Mercedes" },
+  "ANT": { name: "Kimi Antonelli", team: "Mercedes" },
   "ALO": { name: "Fernando Alonso", team: "Aston Martin" },
   "STR": { name: "Lance Stroll", team: "Aston Martin" },
-  "GAS": { name: "Pierre Gasly", team: "Alpine" },
-  "OCO": { name: "Esteban Ocon", team: "Alpine" },
   "ALB": { name: "Alexander Albon", team: "Williams" },
-  "COL": { name: "Franco Colapinto", team: "Williams" },
-  "SAR": { name: "Logan Sargeant", team: "Williams" },
-  "TSU": { name: "Yuki Tsunoda", team: "RB" },
-  "LAW": { name: "Liam Lawson", team: "RB" },
-  "RIC": { name: "Daniel Ricciardo", team: "RB" },
-  "BOT": { name: "Valtteri Bottas", team: "Kick Sauber" },
-  "ZHO": { name: "Guanyu Zhou", team: "Kick Sauber" },
-  "HUL": { name: "Nico Hulkenberg", team: "Haas" },
-  "MAG": { name: "Kevin Magnussen", team: "Haas" },
-  "BEA": { name: "Oliver Bearman", team: "Haas" },
-  "HAD": { name: "Isack Hadjar", team: "RB" },
-  "ANT": { name: "Kimi Antonelli", team: "Mercedes-AMG" }
+  "SAI": { name: "Carlos Sainz", team: "Williams" },
+  "GAS": { name: "Pierre Gasly", team: "Alpine" },
+  "COL": { name: "Franco Colapinto", team: "Alpine" },
+  "HUL": { name: "Nico Hulkenberg", team: "Audi" },
+  "BOR": { name: "Gabriel Bortoleto", team: "Audi" },
+  "PER": { name: "Sergio Perez", team: "Cadillac" },
+  "BOT": { name: "Valtteri Bottas", team: "Cadillac" },
+  "LAW": { name: "Liam Lawson", team: "Racing Bulls" },
+  "LIN": { name: "Arvid Lindblad", team: "Racing Bulls" },
+  "OCO": { name: "Esteban Ocon", team: "Haas F1 Team" },
+  "BEA": { name: "Oliver Bearman", team: "Haas F1 Team" }
 };
 
 const TEAM_COLORS: Record<string, string> = {
-  "Red Bull Racing": "#3671C6",
-  "Scuderia Ferrari": "#E8002D",
+  "Ferrari": "#E8002D",
   "McLaren": "#FF8000",
-  "Mercedes-AMG": "#27F4D2",
+  "Red Bull Racing": "#3671C6",
+  "Mercedes": "#27F4D2",
   "Aston Martin": "#229971",
-  "Alpine": "#0093CC",
   "Williams": "#64C4FF",
-  "RB": "#6692FF",
-  "Haas": "#B6BABD",
-  "Kick Sauber": "#52E252",
+  "Alpine": "#0093CC",
+  "Audi": "#F50029",
+  "Cadillac": "#FFB81C",
+  "Racing Bulls": "#6692FF",
+  "Haas F1 Team": "#B6BABD",
   "Unknown": "#ffffff"
 };
 
 const TEAM_ACRONYMS: Record<string, string> = {
-  "Red Bull Racing": "RBR",
-  "Scuderia Ferrari": "FER",
+  "Ferrari": "FER",
   "McLaren": "MCL",
-  "Mercedes-AMG": "AMG",
+  "Red Bull Racing": "RBR",
+  "Mercedes": "MER",
   "Aston Martin": "AMR",
-  "Alpine": "ALP",
   "Williams": "WIL",
-  "RB": "RBU",
-  "Haas": "HAA",
-  "Kick Sauber": "SAU",
+  "Alpine": "ALP",
+  "Audi": "AUD",
+  "Cadillac": "CAD",
+  "Racing Bulls": "RBU",
+  "Haas F1 Team": "HAA",
   "Unknown": "UNK"
 };
 
@@ -71,19 +70,19 @@ export default function DashboardTabs({ predictions }: { predictions: any[] }) {
       <nav className="flex items-center gap-6 mb-8 border-b border-white/10 pb-4 overflow-x-auto whitespace-nowrap">
         <button 
           onClick={() => setActiveTab('grid')}
-          className={`font-mono text-xs font-bold tracking-widest uppercase transition-all pb-4 -mb-[17px] ${activeTab === 'grid' ? 'text-[#00F3FF] border-b-2 border-[#00F3FF] shadow-[0_4px_10px_-2px_rgba(0,243,255,0.5)]' : 'text-zinc-500 hover:text-zinc-300'}`}
+          className={`font-mono text-xs font-bold tracking-widest uppercase transition-all pb-4 -mb-[17px] ${activeTab === 'grid' ? 'text-[#E8002D] border-b-2 border-[#E8002D] shadow-[0_4px_10px_-2px_rgba(232,0,45,0.5)]' : 'text-zinc-500 hover:text-zinc-300'}`}
         >
           Master Grid
         </button>
         <button 
           onClick={() => setActiveTab('h2h')}
-          className={`font-mono text-xs font-bold tracking-widest uppercase transition-all pb-4 -mb-[17px] ${activeTab === 'h2h' ? 'text-[#00F3FF] border-b-2 border-[#00F3FF] shadow-[0_4px_10px_-2px_rgba(0,243,255,0.5)]' : 'text-zinc-500 hover:text-zinc-300'}`}
+          className={`font-mono text-xs font-bold tracking-widest uppercase transition-all pb-4 -mb-[17px] ${activeTab === 'h2h' ? 'text-[#E8002D] border-b-2 border-[#E8002D] shadow-[0_4px_10px_-2px_rgba(232,0,45,0.5)]' : 'text-zinc-500 hover:text-zinc-300'}`}
         >
           Head-to-Head
         </button>
         <button 
           onClick={() => setActiveTab('audit')}
-          className={`font-mono text-xs font-bold tracking-widest uppercase transition-all pb-4 -mb-[17px] ${activeTab === 'audit' ? 'text-[#00F3FF] border-b-2 border-[#00F3FF] shadow-[0_4px_10px_-2px_rgba(0,243,255,0.5)]' : 'text-zinc-500 hover:text-zinc-300'}`}
+          className={`font-mono text-xs font-bold tracking-widest uppercase transition-all pb-4 -mb-[17px] ${activeTab === 'audit' ? 'text-[#E8002D] border-b-2 border-[#E8002D] shadow-[0_4px_10px_-2px_rgba(232,0,45,0.5)]' : 'text-zinc-500 hover:text-zinc-300'}`}
         >
           Accuracy Audit
         </button>
@@ -99,9 +98,9 @@ export default function DashboardTabs({ predictions }: { predictions: any[] }) {
             const photoUrl = STORAGE_URL + "drivers/" + p.code + ".png";
             
             return (
-              <div key={p.code} className="bg-zinc-900/60 backdrop-blur-md border border-white/5 hover:border-white/20 transition-all rounded-lg overflow-hidden flex flex-col relative group">
+              <div key={p.code} className="bg-zinc-900/60 backdrop-blur-md border border-white/5 hover:border-[#E8002D]/40 hover:shadow-[0_0_20px_rgba(232,0,45,0.15)] transition-all rounded-lg overflow-hidden flex flex-col relative group">
                 <div className="absolute top-0 right-0 p-4 z-10">
-                  <span className="font-mono text-5xl italic font-black text-white/5 group-hover:text-white/20 transition-colors duration-500 drop-shadow-[0_0_10px_rgba(0,243,255,0.2)]">
+                  <span className="font-mono text-6xl italic font-black text-[#E8002D]/20 group-hover:text-[#E8002D] transition-colors duration-500 drop-shadow-[0_0_10px_rgba(232,0,45,0.7)]">
                     {(index + 1).toString().padStart(2, '0')}
                   </span>
                 </div>
@@ -147,9 +146,9 @@ export default function DashboardTabs({ predictions }: { predictions: any[] }) {
                       <span className="font-mono text-[10px] text-zinc-400 uppercase">Win Probability</span>
                       <div className="flex items-center gap-3 flex-1 ml-4">
                         <div className="h-1 bg-white/5 flex-1 overflow-hidden rounded-full">
-                          <div className="h-full" style={{ width: p.prob_win, backgroundColor: teamColor, boxShadow: `0 0 8px ${teamColor}` }}></div>
+                          <div className="h-full" style={{ width: p.prob_win, backgroundColor: '#E8002D', boxShadow: `0 0 8px #E8002D` }}></div>
                         </div>
-                        <span className="font-mono text-sm font-bold w-12 text-right">{p.prob_win}</span>
+                        <span className="font-mono text-sm font-bold w-12 text-right text-white">{p.prob_win}</span>
                       </div>
                     </div>
                     
@@ -157,15 +156,15 @@ export default function DashboardTabs({ predictions }: { predictions: any[] }) {
                       <span className="font-mono text-[10px] text-zinc-400 uppercase">Podium Chance</span>
                       <div className="flex items-center gap-3 flex-1 ml-4">
                         <div className="h-1 bg-white/5 flex-1 overflow-hidden rounded-full">
-                          <div className="h-full bg-zinc-300" style={{ width: p.prob_podium }}></div>
+                          <div className="h-full" style={{ width: p.prob_podium, backgroundColor: '#00F3FF', boxShadow: `0 0 8px #00F3FF` }}></div>
                         </div>
-                        <span className="font-mono text-sm font-bold w-12 text-right">{p.prob_podium}</span>
+                        <span className="font-mono text-sm font-bold w-12 text-right text-white">{p.prob_podium}</span>
                       </div>
                     </div>
 
                     <div className="flex justify-between items-center bg-white/5 p-3 rounded-md">
                       <span className="font-mono text-[10px] text-zinc-400 uppercase">Base Pace Avg.</span>
-                      <span className="font-mono text-sm font-bold" style={{ color: teamColor }}>
+                      <span className="font-mono text-sm font-bold text-[#E8002D]">
                         {p.ai_base_pace ? parseFloat(p.ai_base_pace).toFixed(3) : "1:31.000"}
                       </span>
                     </div>
@@ -247,9 +246,9 @@ export default function DashboardTabs({ predictions }: { predictions: any[] }) {
                   {/* VS Centerpiece */}
                   <div className="lg:col-span-1 flex flex-col items-center justify-center z-10 py-8 lg:py-0">
                     <div className="relative w-20 h-20 flex items-center justify-center">
-                      <div className="absolute inset-0 bg-[#00f3ff]/20 rounded-full blur-2xl animate-pulse"></div>
-                      <div className="relative w-16 h-16 rounded-full flex items-center justify-center border border-[#00f3ff]/40 bg-zinc-900/80 backdrop-blur-md">
-                        <span className="text-xl italic text-[#00f3ff] font-black">VS</span>
+                      <div className="absolute inset-0 bg-[#E8002D]/20 rounded-full blur-2xl animate-pulse"></div>
+                      <div className="relative w-16 h-16 rounded-full flex items-center justify-center border border-[#E8002D]/40 bg-zinc-900/80 backdrop-blur-md">
+                        <span className="text-xl italic text-[#E8002D] font-black">VS</span>
                       </div>
                     </div>
                   </div>
@@ -307,9 +306,9 @@ export default function DashboardTabs({ predictions }: { predictions: any[] }) {
       {/* Accuracy Audit Tab */}
       {activeTab === 'audit' && (
         <div className="min-h-[400px] flex items-center justify-center border border-white/5 rounded-xl bg-zinc-900/30 backdrop-blur-sm relative overflow-hidden">
-           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,243,255,0.05)_0%,transparent_50%)]"></div>
+           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(232,0,45,0.05)_0%,transparent_50%)]"></div>
            <div className="text-center z-10">
-             <div className="w-16 h-16 border-t-2 border-r-2 border-[#00F3FF] rounded-full animate-spin mx-auto mb-6"></div>
+             <div className="w-16 h-16 border-t-2 border-r-2 border-[#E8002D] rounded-full animate-spin mx-auto mb-6"></div>
              <h2 className="text-2xl font-bold text-white mb-2 uppercase tracking-widest">Model Calibration</h2>
              <p className="text-zinc-400 font-mono text-sm max-w-md mx-auto">
                Historical accuracy audit module is currently processing the latest race deltas.
