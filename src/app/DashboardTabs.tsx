@@ -104,7 +104,6 @@ export default function DashboardTabs({ predictions, results, strategy }: { pred
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const STORAGE_URL = supabaseUrl + "/storage/v1/object/public/f1_assets/";
 
-  // Accuracy Statistics Calculation
   const stats = useMemo(() => {
     let globalTotal = 0;
     let globalHits = 0;
@@ -162,58 +161,55 @@ export default function DashboardTabs({ predictions, results, strategy }: { pred
 
   return (
     <div className="w-full">
-      {/* Tab Navigation & Selector */}
-      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-12 border-b border-white/10 pb-6">
-        <nav className="flex items-center gap-8 overflow-x-auto whitespace-nowrap scrollbar-hide">
-          <button 
-            onClick={() => setActiveTab('grid')}
-            className={`font-mono text-[11px] font-bold tracking-[0.2em] uppercase transition-all pb-6 -mb-[25px] ${activeTab === 'grid' ? 'text-[#E8002D] border-b-2 border-[#E8002D] shadow-[0_4px_12px_-2px_rgba(232,0,45,0.6)]' : 'text-zinc-500 hover:text-zinc-300'}`}
-          >
-            01. Master Grid
-          </button>
-          <button 
-            onClick={() => setActiveTab('strategy')}
-            className={`font-mono text-[11px] font-bold tracking-[0.2em] uppercase transition-all pb-6 -mb-[25px] ${activeTab === 'strategy' ? 'text-[#E8002D] border-b-2 border-[#E8002D] shadow-[0_4px_12px_-2px_rgba(232,0,45,0.6)]' : 'text-zinc-500 hover:text-zinc-300'}`}
-          >
-            02. Strategy & Map
-          </button>
-          <button 
-            onClick={() => setActiveTab('h2h')}
-            className={`font-mono text-[11px] font-bold tracking-[0.2em] uppercase transition-all pb-6 -mb-[25px] ${activeTab === 'h2h' ? 'text-[#E8002D] border-b-2 border-[#E8002D] shadow-[0_4px_12px_-2px_rgba(232,0,45,0.6)]' : 'text-zinc-500 hover:text-zinc-300'}`}
-          >
-            03. Head-to-Head
-          </button>
-          <button 
-            onClick={() => setActiveTab('audit')}
-            className={`font-mono text-[11px] font-bold tracking-[0.2em] uppercase transition-all pb-6 -mb-[25px] ${activeTab === 'audit' ? 'text-[#E8002D] border-b-2 border-[#E8002D] shadow-[0_4px_12px_-2px_rgba(232,0,45,0.6)]' : 'text-zinc-500 hover:text-zinc-300'}`}
-          >
-            04. Accuracy Audit
-          </button>
-        </nav>
-
-        {/* Round Selector */}
-        <div className="flex items-center gap-4 bg-zinc-900/80 backdrop-blur-xl p-1.5 rounded-xl border border-white/10 shadow-2xl">
-          <div className="flex items-center gap-2 px-3 border-r border-white/5">
-            <div className="w-2 h-2 rounded-full bg-[#E8002D] animate-pulse"></div>
-            <span className="font-mono text-[10px] text-zinc-400 uppercase tracking-widest">Select Session</span>
+      {/* Header Container: Two Rows */}
+      <div className="flex flex-col gap-8 mb-12 border-b border-white/10 pb-2">
+        
+        {/* Row 1: Session Selector (Full Width) */}
+        <div className="flex justify-center xl:justify-end">
+          <div className="flex items-center gap-4 bg-zinc-900/80 backdrop-blur-xl p-2 rounded-2xl border border-white/10 shadow-2xl w-full max-w-2xl">
+            <div className="flex items-center gap-3 px-4 border-r border-white/5">
+              <div className="w-2.5 h-2.5 rounded-full bg-[#E8002D] animate-pulse shadow-[0_0_8px_rgba(232,0,45,0.6)]"></div>
+              <span className="font-mono text-[11px] text-zinc-400 uppercase tracking-[0.2em] font-bold">Select Session</span>
+            </div>
+            <select 
+              value={selectedRound}
+              onChange={(e) => setSelectedRound(Number(e.target.value))}
+              className="flex-1 bg-transparent text-white font-mono text-sm border-none rounded-lg py-2 pl-2 pr-8 focus:ring-0 outline-none cursor-pointer hover:text-[#E8002D] transition-colors"
+            >
+              {rounds.map(r => (
+                <option key={r} value={r} className="bg-zinc-900 text-white">
+                  Round {r}: {predictions.find(p => p.round_number === r)?.race_name || results.find(re => re.round_number === r)?.race_name || "Official Data Only"}
+                </option>
+              ))}
+            </select>
           </div>
-          <select 
-            value={selectedRound}
-            onChange={(e) => setSelectedRound(Number(e.target.value))}
-            className="bg-transparent text-white font-mono text-xs border-none rounded-lg py-1.5 pl-2 pr-8 focus:ring-0 outline-none cursor-pointer hover:text-[#E8002D] transition-colors"
-          >
-            {rounds.map(r => (
-              <option key={r} value={r} className="bg-zinc-900 text-white">
-                Round {r}: {predictions.find(p => p.round_number === r)?.race_name || results.find(re => re.round_number === r)?.race_name || "Official Data Only"}
-              </option>
-            ))}
-          </select>
         </div>
+
+        {/* Row 2: Navigation Tabs */}
+        <nav className="flex items-center justify-center xl:justify-start gap-12 overflow-x-auto whitespace-nowrap scrollbar-hide py-2">
+          {[
+            { id: 'grid', label: '01. Master Grid' },
+            { id: 'strategy', label: '02. Strategy & Map' },
+            { id: 'h2h', label: '03. Head-to-Head' },
+            { id: 'audit', label: '04. Accuracy Audit' }
+          ].map((tab) => (
+            <button 
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`font-mono text-[12px] font-bold tracking-[0.25em] uppercase transition-all pb-4 relative ${activeTab === tab.id ? 'text-[#E8002D]' : 'text-zinc-500 hover:text-zinc-300'}`}
+            >
+              {tab.label}
+              {activeTab === tab.id && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#E8002D] shadow-[0_4px_12px_rgba(232,0,45,0.6)]"></div>
+              )}
+            </button>
+          ))}
+        </nav>
       </div>
 
       {/* Grid Tab */}
       {activeTab === 'grid' && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 animate-in fade-in duration-500">
           {filteredPredictions.map((p, index) => {
             const details = DRIVER_DETAILS[p.code] || { name: p.code, team: "Unknown" };
             const teamColor = TEAM_COLORS[details.team] || "#00f3ff";
@@ -284,38 +280,38 @@ export default function DashboardTabs({ predictions, results, strategy }: { pred
 
       {/* Strategy & Map Tab */}
       {activeTab === 'strategy' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Strategy Matrix */}
           <div className="lg:col-span-2 bg-zinc-900/60 backdrop-blur-md rounded-2xl border border-white/5 overflow-hidden flex flex-col shadow-2xl">
             <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
-               <h3 className="text-xs font-black text-white uppercase tracking-[0.3em]">Strategy Simulation Matrix</h3>
+               <h3 className="text-sm font-black text-white uppercase tracking-[0.3em]">Strategy Simulation Matrix</h3>
                <div className="flex items-center gap-2">
-                 <span className="w-1.5 h-1.5 rounded-full bg-[#E8002D] animate-pulse"></span>
-                 <span className="font-mono text-[8px] text-zinc-400 uppercase">Live Updates</span>
+                 <span className="w-2 h-2 rounded-full bg-[#E8002D] animate-pulse"></span>
+                 <span className="font-mono text-[10px] text-zinc-400 uppercase tracking-widest">Live Updates</span>
                </div>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-left font-mono text-[10px]">
+              <table className="w-full text-left font-mono text-xs">
                 <thead>
                   <tr className="bg-zinc-950/50 text-zinc-500 uppercase">
-                    <th className="px-6 py-4">Driver</th>
-                    <th className="px-6 py-4">Pit Window</th>
-                    <th className="px-6 py-4">Tire Life</th>
-                    <th className="px-6 py-4">Optimal Strategy</th>
-                    <th className="px-6 py-4">Risk</th>
+                    <th className="px-6 py-5">Driver</th>
+                    <th className="px-6 py-5">Pit Window</th>
+                    <th className="px-6 py-5">Tire Life</th>
+                    <th className="px-6 py-5">Optimal Strategy</th>
+                    <th className="px-6 py-5">Risk</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {filteredStrategy.slice(0, 10).map((s) => {
+                  {filteredStrategy.map((s) => {
                     const color = TEAM_COLORS[DRIVER_DETAILS[s.code]?.team || ""] || "#E8002D";
                     return (
-                      <tr key={s.id} className="hover:bg-white/2 transition-colors">
-                        <td className="px-6 py-4 font-black italic" style={{ color }}>{s.code}</td>
-                        <td className="px-6 py-4 text-white">{s.pit_window}</td>
+                      <tr key={s.id} className="hover:bg-white/5 transition-colors">
+                        <td className="px-6 py-4 font-black italic text-sm" style={{ color }}>{s.code}</td>
+                        <td className="px-6 py-4 text-white font-bold">{s.pit_window}</td>
                         <td className="px-6 py-4 text-zinc-400">{s.tire_life}</td>
-                        <td className="px-6 py-4 text-white font-bold">{s.optimal_strategy}</td>
+                        <td className="px-6 py-4 text-white font-black tracking-wide">{s.optimal_strategy}</td>
                         <td className="px-6 py-4">
-                           <span className={`px-2 py-0.5 rounded text-[8px] font-black ${
+                           <span className={`px-3 py-1 rounded-md text-[9px] font-black ${
                              s.risk_level === 'LOW' ? 'bg-green-500/10 text-green-500 border border-green-500/20' :
                              s.risk_level === 'MED' ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' :
                              'bg-red-500/10 text-red-500 border border-red-500/20'
@@ -329,43 +325,44 @@ export default function DashboardTabs({ predictions, results, strategy }: { pred
                 </tbody>
               </table>
             </div>
-            <div className="p-4 border-t border-white/5 bg-zinc-950/30 flex justify-center">
-               <button className="text-[9px] font-mono text-zinc-500 hover:text-white transition-colors uppercase tracking-widest">Load full grid telemetry</button>
-            </div>
           </div>
 
           {/* Track Map */}
-          <div className="bg-zinc-900/60 backdrop-blur-md rounded-2xl border border-white/5 overflow-hidden flex flex-col shadow-2xl relative">
+          <div className="bg-zinc-900/60 backdrop-blur-md rounded-2xl border border-white/5 overflow-hidden flex flex-col shadow-2xl relative h-fit sticky top-8">
             <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
                <div>
-                  <h3 className="text-xs font-black text-white uppercase tracking-[0.3em]">Track Map</h3>
-                  <p className="font-mono text-[8px] text-zinc-500 mt-1 uppercase">
+                  <h3 className="text-sm font-black text-white uppercase tracking-[0.3em]">Track Map</h3>
+                  <p className="font-mono text-[10px] text-zinc-500 mt-1 uppercase tracking-widest">
                     {predictions.find(p => p.round_number === selectedRound)?.race_name || "Circuit Layout"}
                   </p>
                </div>
-               <div className="w-8 h-8 rounded-lg bg-[#E8002D] flex items-center justify-center shadow-[0_0_15px_rgba(232,0,45,0.4)]">
-                 <svg viewBox="0 0 24 24" fill="white" className="w-4 h-4"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+               <div className="w-10 h-10 rounded-xl bg-[#E8002D] flex items-center justify-center shadow-[0_0_20px_rgba(232,0,45,0.4)]">
+                 <svg viewBox="0 0 24 24" fill="white" className="w-5 h-5"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
                </div>
             </div>
-            <div className="flex-1 p-6 flex items-center justify-center relative min-h-[300px]">
-               <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 to-transparent pointer-events-none z-10"></div>
+            <div className="p-8 flex items-center justify-center relative min-h-[400px]">
+               <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/90 to-transparent pointer-events-none z-10"></div>
                <Image 
                 src={`${STORAGE_URL}tracks/track_${selectedRound}.png`} 
                 alt="Track Layout" 
                 fill 
-                className="object-contain p-4 opacity-80 group-hover:opacity-100 transition-opacity"
+                className="object-contain p-8 opacity-90 group-hover:opacity-100 transition-opacity drop-shadow-[0_0_30px_rgba(255,255,255,0.05)]"
                 unoptimized
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
                />
-               <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 flex gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#E8002D] shadow-[0_0_8px_#E8002D]"></div>
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#00F3FF] shadow-[0_0_8px_#00F3FF]"></div>
-                  <div className="w-1.5 h-1.5 rounded-full bg-white/20"></div>
+               <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 flex gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-[#E8002D] shadow-[0_0_10px_#E8002D]"></div>
+                    <span className="font-mono text-[8px] text-zinc-400 uppercase">Sector 1</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-[#00F3FF] shadow-[0_0_10px_#00F3FF]"></div>
+                    <span className="font-mono text-[8px] text-zinc-400 uppercase">Sector 2</span>
+                  </div>
                </div>
             </div>
             <div className="p-6 border-t border-white/5 bg-zinc-950/30">
-               <button className="w-full py-3 bg-white/5 border border-white/10 rounded-xl font-mono text-[10px] text-zinc-300 uppercase tracking-widest hover:bg-white/10 hover:border-white/20 transition-all">
-                 Expand Telemetry
+               <button className="w-full py-4 bg-white/5 border border-white/10 rounded-xl font-mono text-[11px] text-white font-black uppercase tracking-[0.2em] hover:bg-white/10 hover:border-white/20 transition-all shadow-xl">
+                 Expand Live Telemetry
                </button>
             </div>
           </div>
@@ -374,7 +371,7 @@ export default function DashboardTabs({ predictions, results, strategy }: { pred
 
       {/* Head to Head Tab */}
       {activeTab === 'h2h' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {(() => {
             const teams: Record<string, any[]> = {};
             filteredPredictions.forEach(p => {
@@ -426,7 +423,7 @@ export default function DashboardTabs({ predictions, results, strategy }: { pred
 
       {/* Accuracy Audit Tab */}
       {activeTab === 'audit' && (
-        <div className="space-y-8">
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-zinc-900/60 backdrop-blur-md p-6 rounded-2xl border border-white/5 relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
@@ -500,14 +497,14 @@ export default function DashboardTabs({ predictions, results, strategy }: { pred
                 </h3>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-left font-mono text-[11px]">
+                <table className="w-full text-left font-mono text-sm">
                   <thead>
                     <tr className="bg-zinc-950/50 text-zinc-500 uppercase">
-                      <th className="px-6 py-4">Driver</th>
-                      <th className="px-6 py-4">AI Prediction</th>
-                      <th className="px-6 py-4">Official Finish</th>
-                      <th className="px-6 py-4">Error Delta</th>
-                      <th className="px-6 py-4">Session Status</th>
+                      <th className="px-6 py-5">Driver</th>
+                      <th className="px-6 py-5">AI Prediction</th>
+                      <th className="px-6 py-5">Official Finish</th>
+                      <th className="px-6 py-5">Error Delta</th>
+                      <th className="px-6 py-5">Session Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
@@ -519,17 +516,17 @@ export default function DashboardTabs({ predictions, results, strategy }: { pred
                       
                       return (
                         <tr key={res.id} className="hover:bg-white/5 transition-colors group">
-                          <td className="px-6 py-4 text-white font-black group-hover:text-[#E8002D] transition-colors flex items-center gap-2">
-                            <span className="w-1 h-4 bg-[#E8002D]"></span>
+                          <td className="px-6 py-5 text-white font-black group-hover:text-[#E8002D] transition-colors flex items-center gap-2 text-sm">
+                            <span className="w-1.5 h-5 bg-[#E8002D]"></span>
                             {res.code}
                           </td>
-                          <td className="px-6 py-4 text-zinc-400">{predPos !== null ? `P${predPos}` : '-'}</td>
-                          <td className="px-6 py-4 text-[#E8002D] font-black">P{res.official_position}</td>
-                          <td className="px-6 py-4 font-black" style={{ color: delta === 0 ? '#00F3FF' : (delta !== null && delta <= 2 ? '#ffffff' : '#ef4444') }}>
+                          <td className="px-6 py-5 text-zinc-400 font-bold">{predPos !== null ? `P${predPos}` : '-'}</td>
+                          <td className="px-6 py-5 text-[#E8002D] font-black text-base">P{res.official_position}</td>
+                          <td className="px-6 py-5 font-black text-sm" style={{ color: delta === 0 ? '#00F3FF' : (delta !== null && delta <= 2 ? '#ffffff' : '#ef4444') }}>
                             {delta !== null ? (delta === 0 ? '±0' : `±${delta}`) : '-'}
                           </td>
-                          <td className="px-6 py-4">
-                            <span className={`px-2 py-1 rounded-[4px] text-[8px] uppercase font-black ${isAccurate ? 'bg-[#00F3FF]/10 text-[#00F3FF] border border-[#00F3FF]/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
+                          <td className="px-6 py-5">
+                            <span className={`px-3 py-1 rounded-md text-[10px] font-black uppercase ${isAccurate ? 'bg-[#00F3FF]/10 text-[#00F3FF] border border-[#00F3FF]/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
                               {delta !== null ? (isAccurate ? 'Within Range' : 'Outlier Detected') : 'N/A'}
                             </span>
                           </td>
