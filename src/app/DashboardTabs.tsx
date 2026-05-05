@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 
 const getDriverPhoto = (code: string) => {
@@ -87,25 +87,15 @@ const TEAM_COLORS: Record<string, string> = {
   "Cadillac": "#FFD700"
 };
 
-const TEAM_ACRONYMS: Record<string, string> = {
-  "Ferrari": "FER",
-  "Red Bull Racing": "RBR",
-  "Mercedes": "MER",
-  "McLaren": "MCL",
-  "Aston Martin": "AST",
-  "Alpine": "ALP",
-  "Williams": "WIL",
-  "Racing Bulls": "RAB",
-  "Haas F1 Team": "HAS",
-  "Audi": "AUD",
-  "Cadillac": "CAD"
-};
-
 export default function DashboardTabs({ predictions, results }: { predictions: any[], results: any[] }) {
   const [activeTab, setActiveTab] = useState<'grid' | 'h2h' | 'audit'>('grid');
   
-  // Get unique rounds from predictions
-  const rounds = Array.from(new Set(predictions.map(p => p.round_number))).sort((a, b) => b - a);
+  // Get all unique rounds from both tables
+  const rounds = useMemo(() => {
+    const allRounds = Array.from(new Set([...predictions.map(p => p.round_number), ...results.map(r => r.round_number)]));
+    return allRounds.sort((a, b) => b - a);
+  }, [predictions, results]);
+
   const [selectedRound, setSelectedRound] = useState(rounds[0] || 4);
 
   // Filter predictions and results for the selected round
@@ -115,41 +105,92 @@ export default function DashboardTabs({ predictions, results }: { predictions: a
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const STORAGE_URL = supabaseUrl + "/storage/v1/object/public/f1_assets/";
 
+  // Accuracy Statistics Calculation
+  const stats = useMemo(() => {
+    let totalH2H = 0;
+    let hitsH2H = 0;
+
+    // We calculate hits across all rounds where both predictions and results exist
+    const allRoundsWithData = Array.from(new Set(predictions.map(p => p.round_number)));
+    
+    allRoundsWithData.forEach(rNum => {
+      const roundPreds = predictions.filter(p => p.round_number === rNum);
+      const roundRes = results.filter(r => r.round_number === rNum);
+      
+      if (roundRes.length === 0) return;
+
+      const teams: Record<string, any[]> = {};
+      roundPreds.forEach(p => {
+        const team = DRIVER_DETAILS[p.code]?.team || "Unknown";
+        if (!teams[team]) teams[team] = [];
+        teams[team].push(p);
+      });
+
+      Object.entries(teams).forEach(([teamName, drivers]) => {
+        if (drivers.length < 2) return;
+        
+        const d1 = drivers[0];
+        const d2 = drivers[1];
+        
+        const r1 = roundRes.find(r => r.code === d1.code);
+        const r2 = roundRes.find(r => r.code === d2.code);
+
+        if (r1 && r2) {
+          totalH2H++;
+          const predictedWinner = d1.ai_predicted_pos < d2.ai_predicted_pos ? d1.code : d2.code;
+          const officialWinner = r1.official_position < r2.official_position ? r1.code : r2.code;
+          
+          if (predictedWinner === officialWinner) {
+            hitsH2H++;
+          }
+        }
+      });
+    });
+
+    const accuracy = totalH2H > 0 ? Math.round((hitsH2H / totalH2H) * 100) : 0;
+    return { totalH2H, hitsH2H, accuracy };
+  }, [predictions, results]);
+
   return (
     <div className="w-full">
-      {/* Tab Navigation */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b border-white/10 pb-4">
-        <nav className="flex items-center gap-6 overflow-x-auto whitespace-nowrap">
+      {/* Tab Navigation & Selector */}
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-12 border-b border-white/10 pb-6">
+        <nav className="flex items-center gap-8 overflow-x-auto whitespace-nowrap scrollbar-hide">
           <button 
             onClick={() => setActiveTab('grid')}
-            className={`font-mono text-xs font-bold tracking-widest uppercase transition-all pb-4 -mb-[17px] ${activeTab === 'grid' ? 'text-[#E8002D] border-b-2 border-[#E8002D] shadow-[0_4px_10px_-2px_rgba(232,0,45,0.5)]' : 'text-zinc-500 hover:text-zinc-300'}`}
+            className={`font-mono text-[11px] font-bold tracking-[0.2em] uppercase transition-all pb-6 -mb-[25px] ${activeTab === 'grid' ? 'text-[#E8002D] border-b-2 border-[#E8002D] shadow-[0_4px_12px_-2px_rgba(232,0,45,0.6)]' : 'text-zinc-500 hover:text-zinc-300'}`}
           >
-            Master Grid
+            01. Master Grid
           </button>
           <button 
             onClick={() => setActiveTab('h2h')}
-            className={`font-mono text-xs font-bold tracking-widest uppercase transition-all pb-4 -mb-[17px] ${activeTab === 'h2h' ? 'text-[#E8002D] border-b-2 border-[#E8002D] shadow-[0_4px_10px_-2px_rgba(232,0,45,0.5)]' : 'text-zinc-500 hover:text-zinc-300'}`}
+            className={`font-mono text-[11px] font-bold tracking-[0.2em] uppercase transition-all pb-6 -mb-[25px] ${activeTab === 'h2h' ? 'text-[#E8002D] border-b-2 border-[#E8002D] shadow-[0_4px_12px_-2px_rgba(232,0,45,0.6)]' : 'text-zinc-500 hover:text-zinc-300'}`}
           >
-            Head-to-Head
+            02. Head-to-Head
           </button>
           <button 
             onClick={() => setActiveTab('audit')}
-            className={`font-mono text-xs font-bold tracking-widest uppercase transition-all pb-4 -mb-[17px] ${activeTab === 'audit' ? 'text-[#E8002D] border-b-2 border-[#E8002D] shadow-[0_4px_10px_-2px_rgba(232,0,45,0.5)]' : 'text-zinc-500 hover:text-zinc-300'}`}
+            className={`font-mono text-[11px] font-bold tracking-[0.2em] uppercase transition-all pb-6 -mb-[25px] ${activeTab === 'audit' ? 'text-[#E8002D] border-b-2 border-[#E8002D] shadow-[0_4px_12px_-2px_rgba(232,0,45,0.6)]' : 'text-zinc-500 hover:text-zinc-300'}`}
           >
-            Accuracy Audit
+            03. Accuracy Audit
           </button>
         </nav>
 
-        {/* Round Selector */}
-        <div className="flex items-center gap-3 bg-zinc-900/50 p-1 rounded-lg border border-white/5">
-          <span className="font-mono text-[10px] text-zinc-500 uppercase px-2">Select Race</span>
+        {/* Improved Round Selector */}
+        <div className="flex items-center gap-4 bg-zinc-900/80 backdrop-blur-xl p-1.5 rounded-xl border border-white/10 shadow-2xl">
+          <div className="flex items-center gap-2 px-3 border-r border-white/5">
+            <div className="w-2 h-2 rounded-full bg-[#E8002D] animate-pulse"></div>
+            <span className="font-mono text-[10px] text-zinc-400 uppercase tracking-widest">Select Session</span>
+          </div>
           <select 
             value={selectedRound}
             onChange={(e) => setSelectedRound(Number(e.target.value))}
-            className="bg-zinc-800 text-white font-mono text-xs border-none rounded py-1 px-3 focus:ring-1 focus:ring-[#E8002D] outline-none"
+            className="bg-transparent text-white font-mono text-xs border-none rounded-lg py-1.5 pl-2 pr-8 focus:ring-0 outline-none cursor-pointer hover:text-[#E8002D] transition-colors"
           >
             {rounds.map(r => (
-              <option key={r} value={r}>Round {r}: {predictions.find(p => p.round_number === r)?.race_name || "Miami"}</option>
+              <option key={r} value={r} className="bg-zinc-900 text-white">
+                Round {r}: {predictions.find(p => p.round_number === r)?.race_name || results.find(re => re.round_number === r)?.race_name || "Official Data Only"}
+              </option>
             ))}
           </select>
         </div>
@@ -157,7 +198,7 @@ export default function DashboardTabs({ predictions, results }: { predictions: a
 
       {/* Grid Tab */}
       {activeTab === 'grid' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {filteredPredictions.map((p, index) => {
             const details = DRIVER_DETAILS[p.code] || { name: p.code, team: "Unknown" };
             const teamColor = TEAM_COLORS[details.team] || "#00f3ff";
@@ -165,76 +206,60 @@ export default function DashboardTabs({ predictions, results }: { predictions: a
             const logoUrl = STORAGE_URL + "logos/" + getTeamLogo(details.team);
             
             return (
-              <div key={p.code} className="bg-zinc-900/60 backdrop-blur-md border border-white/5 hover:border-[#E8002D]/40 hover:shadow-[0_0_20px_rgba(232,0,45,0.15)] transition-all rounded-lg overflow-hidden flex flex-col relative group">
-                <div className="absolute top-0 right-0 p-4 z-10">
-                  <span className="font-mono text-6xl italic font-black text-[#E8002D]/20 group-hover:text-[#E8002D] transition-colors duration-500 drop-shadow-[0_0_10px_rgba(232,0,45,0.7)]">
+              <div key={p.code} className="bg-zinc-900/60 backdrop-blur-md border border-white/5 hover:border-[#E8002D]/40 transition-all rounded-lg overflow-hidden flex flex-col relative group h-full">
+                {/* Ranking Number */}
+                <div className="absolute top-2 right-2 z-10">
+                  <span className="font-mono text-3xl italic font-black text-[#E8002D]/10 group-hover:text-[#E8002D]/30 transition-colors">
                     {(index + 1).toString().padStart(2, '0')}
                   </span>
                 </div>
                 
                 {/* Driver Image Section */}
-                <div className="relative h-64 w-full bg-zinc-950 overflow-hidden">
-                  <div className="absolute inset-0 flex items-end justify-center opacity-30 group-hover:opacity-10 transition-opacity">
-                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full text-zinc-700 translate-y-8 scale-150">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm0 14c-2.03 0-4.43-.82-6.14-2.88a9.947 9.947 0 0112.28 0C16.43 19.18 14.03 20 12 20z" />
-                    </svg>
-                  </div>
-                  
+                <div className="relative h-48 w-full bg-zinc-950 overflow-hidden">
                   <Image 
                     src={photoUrl} 
                     alt={details.name}
                     fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-cover object-top grayscale group-hover:grayscale-0 transition-all duration-700 scale-105 group-hover:scale-100 z-10"
+                    sizes="(max-width: 768px) 50vw, 16vw"
+                    className="object-cover object-top transition-all duration-700 scale-105 group-hover:scale-100 z-10"
                     unoptimized
                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#121619] via-transparent to-transparent z-20"></div>
                 </div>
 
-                <div className="p-6 -mt-12 relative z-30">
-                  <div className="flex justify-between items-end mb-4">
-                    <div className="flex-1">
-                      <span className="font-mono text-[10px] text-zinc-400 uppercase tracking-[0.2em]" style={{ color: teamColor }}>{details.team}</span>
-                      <h2 className="text-xl font-bold uppercase italic text-white tracking-tight">{details.name}</h2>
-                    </div>
-                    <div className="relative w-10 h-10 flex items-center justify-center">
-                      <div className="absolute inset-0 bg-white/5 rounded-full scale-110"></div>
-                      <Image 
-                        src={logoUrl}
-                        alt={details.team}
-                        width={24}
-                        height={24}
-                        className="object-contain z-10"
-                        unoptimized
-                      />
+                <div className="p-3 -mt-6 relative z-30 flex-1 flex flex-col">
+                  <div className="flex justify-between items-end mb-2">
+                    <div className="flex-1 truncate">
+                      <span className="font-mono text-[8px] text-zinc-400 uppercase tracking-widest block truncate" style={{ color: teamColor }}>{details.team}</span>
+                      <h2 className="text-sm font-bold uppercase italic text-white tracking-tight truncate">{details.name.split(' ').pop()}</h2>
                     </div>
                   </div>
 
-                  <div className="space-y-4 pt-4 border-t border-white/5">
-                    <div className="flex justify-between items-center">
-                      <span className="font-mono text-[10px] text-zinc-400 uppercase">Win Probability</span>
-                      <div className="flex items-center gap-3 flex-1 ml-4">
-                        <div className="h-1 bg-white/5 flex-1 overflow-hidden rounded-full">
-                          <div className="h-full" style={{ width: p.prob_win, backgroundColor: '#E8002D', boxShadow: `0 0 8px #E8002D` }}></div>
-                        </div>
-                        <span className="font-mono text-sm font-bold w-12 text-right text-white">{p.prob_win}</span>
+                  <div className="space-y-2.5 pt-2 border-t border-white/5 mt-auto">
+                    {/* Probabilities Grid */}
+                    <div className="grid grid-cols-2 gap-2">
+                       <div className="bg-white/5 p-1.5 rounded flex flex-col items-center">
+                        <span className="font-mono text-[7px] text-zinc-500 uppercase">Win</span>
+                        <span className="text-xs font-bold text-white">{p.prob_win}</span>
                       </div>
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <span className="font-mono text-[10px] text-zinc-400 uppercase">Podium Chance</span>
-                      <div className="flex items-center gap-3 flex-1 ml-4">
-                        <div className="h-1 bg-white/5 flex-1 overflow-hidden rounded-full">
-                          <div className="h-full" style={{ width: p.prob_podium, backgroundColor: '#00F3FF', boxShadow: `0 0 8px #00F3FF` }}></div>
-                        </div>
-                        <span className="font-mono text-sm font-bold w-12 text-right text-white">{p.prob_podium}</span>
+                      <div className="bg-white/5 p-1.5 rounded flex flex-col items-center">
+                        <span className="font-mono text-[7px] text-zinc-500 uppercase">Podium</span>
+                        <span className="text-xs font-bold text-[#00F3FF]">{p.prob_podium}</span>
+                      </div>
+                      <div className="bg-white/5 p-1.5 rounded flex flex-col items-center">
+                        <span className="font-mono text-[7px] text-zinc-500 uppercase">Top 6</span>
+                        <span className="text-xs font-bold text-yellow-500">{p.prob_top6}</span>
+                      </div>
+                      <div className="bg-white/5 p-1.5 rounded flex flex-col items-center">
+                        <span className="font-mono text-[7px] text-zinc-500 uppercase">Top 10</span>
+                        <span className="text-xs font-bold text-green-500">{p.prob_top10}</span>
                       </div>
                     </div>
 
-                    <div className="flex justify-between items-center bg-white/5 p-3 rounded-md">
-                      <span className="font-mono text-[10px] text-zinc-400 uppercase">Base Pace Avg.</span>
-                      <span className="font-mono text-sm font-bold text-[#E8002D]">
+                    <div className="flex justify-between items-center bg-[#E8002D]/5 p-1.5 rounded border border-[#E8002D]/10">
+                      <span className="font-mono text-[7px] text-zinc-400 uppercase">Pace</span>
+                      <span className="font-mono text-[10px] font-bold text-[#E8002D]">
                         {p.ai_base_pace ? parseFloat(p.ai_base_pace).toFixed(3) : "1:31.000"}
                       </span>
                     </div>
@@ -248,7 +273,7 @@ export default function DashboardTabs({ predictions, results }: { predictions: a
 
       {/* Head to Head Tab */}
       {activeTab === 'h2h' && (
-        <div className="space-y-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {(() => {
             const teams: Record<string, any[]> = {};
             filteredPredictions.forEach(p => {
@@ -260,102 +285,61 @@ export default function DashboardTabs({ predictions, results }: { predictions: a
             return Object.entries(teams).map(([teamName, drivers]) => {
               if (drivers.length < 2) return null;
               
+              // Determine the pick (predicted winner)
               const d1 = drivers[0];
               const d2 = drivers[1];
-              const d1Color = TEAM_COLORS[teamName] || "#00f3ff";
-              const d2Color = "#ea0011";
+              const d1IsPick = d1.ai_predicted_pos < d2.ai_predicted_pos;
+              
+              const teamColor = TEAM_COLORS[teamName] || "#00f3ff";
               
               return (
-                <div key={teamName} className="relative grid grid-cols-1 lg:grid-cols-11 gap-4 items-center">
-                  <div className="lg:col-span-5 group">
-                    <div className="bg-zinc-900/40 backdrop-blur-md p-6 rounded-xl border-l-4 transition-all duration-500 hover:bg-white/5 border-t border-r border-b border-white/5" style={{ borderLeftColor: d1Color }}>
-                      <div className="flex justify-between items-start mb-6">
-                        <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-white/10 grayscale group-hover:grayscale-0 transition-all bg-zinc-950">
-                           <div className="absolute inset-0 flex items-end justify-center opacity-30 group-hover:opacity-10 transition-opacity">
-                            <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full text-zinc-700 translate-y-4 scale-125">
-                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm0 14c-2.03 0-4.43-.82-6.14-2.88a9.947 9.947 0 0112.28 0C16.43 19.18 14.03 20 12 20z" />
-                            </svg>
-                          </div>
-                          <Image 
-                            src={STORAGE_URL + "drivers/" + getDriverPhoto(d1.code)}
-                            alt={d1.details.name}
-                            fill
-                            className="object-cover object-top z-10"
-                            unoptimized
-                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                          />
-                          <div className="absolute bottom-0 left-0 text-white font-mono px-2 py-1 text-xs z-20" style={{ backgroundColor: d1Color }}>
-                            {d1.code}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <h2 className="text-3xl font-bold uppercase italic tracking-tighter text-white">{d1.details.name.split(' ').pop()}</h2>
-                          <p className="font-mono text-[10px] text-zinc-400 uppercase tracking-widest">{teamName}</p>
-                          <div className="mt-4 flex flex-col items-end">
-                            <span className="font-mono text-[10px] text-zinc-500 mb-1">PREDICTED POS</span>
-                            <span className="text-4xl font-black" style={{ color: d1Color, textShadow: `0 0 15px ${d1Color}80` }}>P{Math.round(d1.ai_predicted_pos)}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-end font-mono text-[10px] text-zinc-400 mb-2">
-                          <span>BASE PACE</span>
-                          <span style={{ color: d1Color }}>{d1.ai_base_pace ? parseFloat(d1.ai_base_pace).toFixed(3) : "1:31.000"}</span>
-                        </div>
-                        <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                           <div className="h-full" style={{ width: '85%', backgroundColor: d1Color }}></div>
-                        </div>
+                <div key={teamName} className="bg-zinc-900/40 backdrop-blur-md rounded-2xl border border-white/5 overflow-hidden flex flex-col relative">
+                  <div className="p-3 border-b border-white/5 bg-white/5 flex justify-between items-center">
+                    <span className="font-mono text-[10px] text-zinc-400 uppercase tracking-[0.3em]">{teamName}</span>
+                    <Image src={STORAGE_URL + "logos/" + getTeamLogo(teamName)} alt={teamName} width={16} height={16} className="opacity-50 grayscale" unoptimized />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 p-4 relative">
+                    {/* VS Center Badge */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
+                      <div className="w-8 h-8 rounded-full bg-[#121619] border border-white/10 flex items-center justify-center shadow-2xl">
+                        <span className="text-[10px] italic font-black text-[#E8002D]">VS</span>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="lg:col-span-1 flex flex-col items-center justify-center z-10 py-8 lg:py-0">
-                    <div className="relative w-20 h-20 flex items-center justify-center">
-                      <div className="absolute inset-0 bg-[#E8002D]/20 rounded-full blur-2xl animate-pulse"></div>
-                      <div className="relative w-16 h-16 rounded-full flex items-center justify-center border border-[#E8002D]/40 bg-zinc-900/80 backdrop-blur-md">
-                        <span className="text-xl italic text-[#E8002D] font-black">VS</span>
+                    {/* Driver 1 */}
+                    <div className={`relative p-3 rounded-xl border transition-all duration-500 ${d1IsPick ? 'border-[#E8002D] shadow-[0_0_20px_rgba(232,0,45,0.2)] bg-[#E8002D]/5' : 'border-white/5 bg-white/2'}`}>
+                      {d1IsPick && <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-[#E8002D] text-white text-[7px] font-black uppercase px-2 py-0.5 rounded-full z-30">AI PICK</div>}
+                      <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-zinc-950 mb-3">
+                         <Image 
+                          src={STORAGE_URL + "drivers/" + getDriverPhoto(d1.code)}
+                          alt={d1.details.name}
+                          fill
+                          className="object-cover object-top"
+                          unoptimized
+                        />
+                      </div>
+                      <div className="text-center">
+                        <h3 className="text-xs font-black text-white uppercase">{d1.code}</h3>
+                        <p className="text-xl font-black text-white mt-1">P{Math.round(d1.ai_predicted_pos)}</p>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="lg:col-span-5 group">
-                     <div className="bg-zinc-900/40 backdrop-blur-md p-6 rounded-xl border-r-4 transition-all duration-500 hover:bg-white/5 border-t border-l border-b border-white/5" style={{ borderRightColor: d2Color }}>
-                      <div className="flex justify-between items-start mb-6">
-                        <div className="order-2 relative w-32 h-32 rounded-lg overflow-hidden border border-white/10 grayscale group-hover:grayscale-0 transition-all bg-zinc-950">
-                           <div className="absolute inset-0 flex items-end justify-center opacity-30 group-hover:opacity-10 transition-opacity">
-                            <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full text-zinc-700 translate-y-4 scale-125">
-                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm0 14c-2.03 0-4.43-.82-6.14-2.88a9.947 9.947 0 0112.28 0C16.43 19.18 14.03 20 12 20z" />
-                            </svg>
-                          </div>
-                          <Image 
-                            src={STORAGE_URL + "drivers/" + getDriverPhoto(d2.code)}
-                            alt={d2.details.name}
-                            fill
-                            className="object-cover object-top z-10"
-                            unoptimized
-                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                          />
-                          <div className="absolute bottom-0 right-0 text-white font-mono px-2 py-1 text-xs z-20" style={{ backgroundColor: d2Color }}>
-                            {d2.code}
-                          </div>
-                        </div>
-                        <div className="order-1 text-left">
-                          <h2 className="text-3xl font-bold uppercase italic tracking-tighter text-white">{d2.details.name.split(' ').pop()}</h2>
-                          <p className="font-mono text-[10px] text-zinc-400 uppercase tracking-widest">{teamName}</p>
-                          <div className="mt-4 flex flex-col items-start">
-                            <span className="font-mono text-[10px] text-zinc-500 mb-1">PREDICTED POS</span>
-                            <span className="text-4xl font-black" style={{ color: d2Color, textShadow: `0 0 15px ${d2Color}80` }}>P{Math.round(d2.ai_predicted_pos)}</span>
-                          </div>
-                        </div>
+                    {/* Driver 2 */}
+                    <div className={`relative p-3 rounded-xl border transition-all duration-500 ${!d1IsPick ? 'border-[#E8002D] shadow-[0_0_20px_rgba(232,0,45,0.2)] bg-[#E8002D]/5' : 'border-white/5 bg-white/2'}`}>
+                      {!d1IsPick && <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-[#E8002D] text-white text-[7px] font-black uppercase px-2 py-0.5 rounded-full z-30">AI PICK</div>}
+                      <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-zinc-950 mb-3">
+                         <Image 
+                          src={STORAGE_URL + "drivers/" + getDriverPhoto(d2.code)}
+                          alt={d2.details.name}
+                          fill
+                          className="object-cover object-top"
+                          unoptimized
+                        />
                       </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-end font-mono text-[10px] text-zinc-400 mb-2">
-                           <span style={{ color: d2Color }}>{d2.ai_base_pace ? parseFloat(d2.ai_base_pace).toFixed(3) : "1:31.250"}</span>
-                          <span>BASE PACE</span>
-                        </div>
-                        <div className="h-1 bg-white/5 rounded-full overflow-hidden flex justify-end">
-                           <div className="h-full" style={{ width: '80%', backgroundColor: d2Color }}></div>
-                        </div>
+                      <div className="text-center">
+                        <h3 className="text-xs font-black text-white uppercase">{d2.code}</h3>
+                        <p className="text-xl font-black text-white mt-1">P{Math.round(d2.ai_predicted_pos)}</p>
                       </div>
                     </div>
                   </div>
@@ -368,24 +352,58 @@ export default function DashboardTabs({ predictions, results }: { predictions: a
 
       {/* Accuracy Audit Tab */}
       {activeTab === 'audit' && (
-        <div className="space-y-6">
+        <div className="space-y-8">
+          {/* Global Statistics Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-zinc-900/60 backdrop-blur-md p-6 rounded-2xl border border-white/5 flex flex-col items-center justify-center text-center">
+              <span className="font-mono text-[10px] text-zinc-500 uppercase tracking-widest mb-2">H2H Accuracy</span>
+              <div className="relative w-24 h-24 flex items-center justify-center">
+                <svg className="w-full h-full -rotate-90">
+                  <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-white/5" />
+                  <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="4" fill="transparent" 
+                    strokeDasharray={251.2} strokeDashoffset={251.2 - (251.2 * stats.accuracy) / 100}
+                    className="text-[#E8002D]" />
+                </svg>
+                <span className="absolute text-2xl font-black text-white">{stats.accuracy}%</span>
+              </div>
+            </div>
+            
+            <div className="bg-zinc-900/60 backdrop-blur-md p-6 rounded-2xl border border-white/5 flex flex-col justify-center">
+              <span className="font-mono text-[10px] text-zinc-500 uppercase tracking-widest mb-4">H2H Hit Rate</span>
+              <div className="flex items-end gap-2">
+                <span className="text-5xl font-black text-white">{stats.hitsH2H}</span>
+                <span className="text-xl font-bold text-zinc-600 mb-1">/ {stats.totalH2H}</span>
+              </div>
+              <p className="text-xs text-zinc-500 mt-2 font-mono">Head-to-head predictions correctly identified within the same team.</p>
+            </div>
+
+            <div className="bg-zinc-900/60 backdrop-blur-md p-6 rounded-2xl border border-white/5 flex flex-col justify-center">
+              <span className="font-mono text-[10px] text-zinc-500 uppercase tracking-widest mb-4">Total Predictions</span>
+              <div className="flex items-end gap-2">
+                <span className="text-5xl font-black text-[#00F3FF]">{predictions.length}</span>
+              </div>
+              <p className="text-xs text-zinc-500 mt-2 font-mono">Total data points analyzed across all sessions in the database.</p>
+            </div>
+          </div>
+
           {filteredResults.length > 0 ? (
-            <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-xl overflow-hidden">
-              <div className="p-6 border-b border-white/5 bg-white/5">
-                <h3 className="text-lg font-bold text-white uppercase tracking-widest flex items-center gap-3">
+            <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-xl overflow-hidden shadow-2xl">
+              <div className="p-6 border-b border-white/5 bg-white/5 flex justify-between items-center">
+                <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-3">
                   <span className="w-2 h-2 bg-[#E8002D] rounded-full animate-pulse"></span>
-                  Round {selectedRound} Audit Results
+                  Round {selectedRound} Raw Audit
                 </h3>
+                <span className="font-mono text-[10px] text-zinc-500">REAL-TIME DATA FEED</span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left font-mono text-xs">
                   <thead>
                     <tr className="bg-zinc-950/50 text-zinc-500 uppercase">
                       <th className="px-6 py-4">Driver</th>
-                      <th className="px-6 py-4">Predicted</th>
-                      <th className="px-6 py-4">Official</th>
-                      <th className="px-6 py-4">Delta</th>
-                      <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4">AI Prediction</th>
+                      <th className="px-6 py-4">Official Finish</th>
+                      <th className="px-6 py-4">Error Delta</th>
+                      <th className="px-6 py-4">System Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
@@ -396,16 +414,16 @@ export default function DashboardTabs({ predictions, results }: { predictions: a
                       const isAccurate = delta !== null && delta <= 2;
                       
                       return (
-                        <tr key={res.id} className="hover:bg-white/5 transition-colors">
-                          <td className="px-6 py-4 text-white font-bold">{res.code}</td>
+                        <tr key={res.id} className="hover:bg-white/5 transition-colors group">
+                          <td className="px-6 py-4 text-white font-bold group-hover:text-[#E8002D] transition-colors">{res.code}</td>
                           <td className="px-6 py-4 text-zinc-400">{predPos !== null ? `P${predPos}` : '-'}</td>
                           <td className="px-6 py-4 text-[#E8002D] font-bold">P{res.official_position}</td>
                           <td className="px-6 py-4 font-bold" style={{ color: delta === 0 ? '#00F3FF' : '#ffffff' }}>
                             {delta !== null ? (delta === 0 ? '±0' : `±${delta}`) : '-'}
                           </td>
                           <td className="px-6 py-4">
-                            <span className={`px-2 py-1 rounded text-[10px] uppercase font-black ${isAccurate ? 'bg-[#00F3FF]/10 text-[#00F3FF]' : 'bg-red-500/10 text-red-500'}`}>
-                              {delta !== null ? (isAccurate ? 'Within Range' : 'Outlier') : 'N/A'}
+                            <span className={`px-2 py-1 rounded text-[9px] uppercase font-black ${isAccurate ? 'bg-[#00F3FF]/10 text-[#00F3FF]' : 'bg-red-500/10 text-red-500'}`}>
+                              {delta !== null ? (isAccurate ? 'Within Range' : 'Outlier Detected') : 'Data Unavailable'}
                             </span>
                           </td>
                         </tr>
@@ -416,14 +434,14 @@ export default function DashboardTabs({ predictions, results }: { predictions: a
               </div>
             </div>
           ) : (
-            <div className="min-h-[400px] flex items-center justify-center border border-white/5 rounded-xl bg-zinc-900/30 backdrop-blur-sm relative overflow-hidden">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(232,0,45,0.05)_0%,transparent_50%)]"></div>
+            <div className="min-h-[400px] flex flex-col items-center justify-center border border-dashed border-white/10 rounded-2xl bg-zinc-900/20 backdrop-blur-sm relative overflow-hidden">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(232,0,45,0.03)_0%,transparent_70%)]"></div>
               <div className="text-center z-10 p-8">
-                <div className="w-16 h-16 border-t-2 border-r-2 border-[#E8002D] rounded-full animate-spin mx-auto mb-6"></div>
-                <h2 className="text-2xl font-bold text-white mb-2 uppercase tracking-widest">Calibration Pending</h2>
-                <p className="text-zinc-400 font-mono text-sm max-w-md mx-auto">
-                  Official results for Round {selectedRound} have not been uploaded yet. 
-                  Audit will be available once the race session concludes.
+                <div className="w-12 h-12 border-2 border-[#E8002D]/30 border-t-[#E8002D] rounded-full animate-spin mx-auto mb-6"></div>
+                <h2 className="text-xl font-bold text-white mb-2 uppercase tracking-widest">Calibration Phase</h2>
+                <p className="text-zinc-500 font-mono text-xs max-w-sm mx-auto leading-relaxed">
+                  Official results for Round {selectedRound} have not been verified yet. 
+                  The neural network comparison will activate once the FIA confirms the race order.
                 </p>
               </div>
             </div>
