@@ -30,6 +30,10 @@ export default async function Home() {
     .from('official_race_results')
     .select('*');
 
+  const { data: strategy, error: sError } = await supabase
+    .from('strategy_simulations')
+    .select('*');
+
   if (pError || !predictions || predictions.length === 0) {
     return (
       <div className="min-h-screen bg-[#101417] text-[#e0e2e8] font-sans p-8 flex flex-col items-center justify-center">
@@ -82,7 +86,11 @@ export default async function Home() {
 
       {/* Main Content Area */}
       <main className="relative z-10 max-w-7xl mx-auto px-6 py-8">
-        <DashboardTabs predictions={predictions} results={results || []} />
+        <DashboardTabs 
+          predictions={predictions} 
+          results={results || []} 
+          strategy={strategy || []}
+        />
       </main>
     </div>
   );

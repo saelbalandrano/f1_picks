@@ -87,8 +87,8 @@ const TEAM_COLORS: Record<string, string> = {
   "Cadillac": "#FFD700"
 };
 
-export default function DashboardTabs({ predictions, results }: { predictions: any[], results: any[] }) {
-  const [activeTab, setActiveTab] = useState<'grid' | 'h2h' | 'audit'>('grid');
+export default function DashboardTabs({ predictions, results, strategy }: { predictions: any[], results: any[], strategy: any[] }) {
+  const [activeTab, setActiveTab] = useState<'grid' | 'h2h' | 'audit' | 'strategy'>('grid');
   
   const rounds = useMemo(() => {
     const allRounds = Array.from(new Set([...predictions.map(p => p.round_number), ...results.map(r => r.round_number)]));
@@ -99,6 +99,7 @@ export default function DashboardTabs({ predictions, results }: { predictions: a
 
   const filteredPredictions = predictions.filter(p => p.round_number === selectedRound);
   const filteredResults = results.filter(r => r.round_number === selectedRound);
+  const filteredStrategy = strategy.filter(s => s.round_number === selectedRound);
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const STORAGE_URL = supabaseUrl + "/storage/v1/object/public/f1_assets/";
@@ -171,16 +172,22 @@ export default function DashboardTabs({ predictions, results }: { predictions: a
             01. Master Grid
           </button>
           <button 
+            onClick={() => setActiveTab('strategy')}
+            className={`font-mono text-[11px] font-bold tracking-[0.2em] uppercase transition-all pb-6 -mb-[25px] ${activeTab === 'strategy' ? 'text-[#E8002D] border-b-2 border-[#E8002D] shadow-[0_4px_12px_-2px_rgba(232,0,45,0.6)]' : 'text-zinc-500 hover:text-zinc-300'}`}
+          >
+            02. Strategy & Map
+          </button>
+          <button 
             onClick={() => setActiveTab('h2h')}
             className={`font-mono text-[11px] font-bold tracking-[0.2em] uppercase transition-all pb-6 -mb-[25px] ${activeTab === 'h2h' ? 'text-[#E8002D] border-b-2 border-[#E8002D] shadow-[0_4px_12px_-2px_rgba(232,0,45,0.6)]' : 'text-zinc-500 hover:text-zinc-300'}`}
           >
-            02. Head-to-Head
+            03. Head-to-Head
           </button>
           <button 
             onClick={() => setActiveTab('audit')}
             className={`font-mono text-[11px] font-bold tracking-[0.2em] uppercase transition-all pb-6 -mb-[25px] ${activeTab === 'audit' ? 'text-[#E8002D] border-b-2 border-[#E8002D] shadow-[0_4px_12px_-2px_rgba(232,0,45,0.6)]' : 'text-zinc-500 hover:text-zinc-300'}`}
           >
-            03. Accuracy Audit
+            04. Accuracy Audit
           </button>
         </nav>
 
@@ -275,6 +282,96 @@ export default function DashboardTabs({ predictions, results }: { predictions: a
         </div>
       )}
 
+      {/* Strategy & Map Tab */}
+      {activeTab === 'strategy' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Strategy Matrix */}
+          <div className="lg:col-span-2 bg-zinc-900/60 backdrop-blur-md rounded-2xl border border-white/5 overflow-hidden flex flex-col shadow-2xl">
+            <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
+               <h3 className="text-xs font-black text-white uppercase tracking-[0.3em]">Strategy Simulation Matrix</h3>
+               <div className="flex items-center gap-2">
+                 <span className="w-1.5 h-1.5 rounded-full bg-[#E8002D] animate-pulse"></span>
+                 <span className="font-mono text-[8px] text-zinc-400 uppercase">Live Updates</span>
+               </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left font-mono text-[10px]">
+                <thead>
+                  <tr className="bg-zinc-950/50 text-zinc-500 uppercase">
+                    <th className="px-6 py-4">Driver</th>
+                    <th className="px-6 py-4">Pit Window</th>
+                    <th className="px-6 py-4">Tire Life</th>
+                    <th className="px-6 py-4">Optimal Strategy</th>
+                    <th className="px-6 py-4">Risk</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {filteredStrategy.slice(0, 10).map((s) => {
+                    const color = TEAM_COLORS[DRIVER_DETAILS[s.code]?.team || ""] || "#E8002D";
+                    return (
+                      <tr key={s.id} className="hover:bg-white/2 transition-colors">
+                        <td className="px-6 py-4 font-black italic" style={{ color }}>{s.code}</td>
+                        <td className="px-6 py-4 text-white">{s.pit_window}</td>
+                        <td className="px-6 py-4 text-zinc-400">{s.tire_life}</td>
+                        <td className="px-6 py-4 text-white font-bold">{s.optimal_strategy}</td>
+                        <td className="px-6 py-4">
+                           <span className={`px-2 py-0.5 rounded text-[8px] font-black ${
+                             s.risk_level === 'LOW' ? 'bg-green-500/10 text-green-500 border border-green-500/20' :
+                             s.risk_level === 'MED' ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' :
+                             'bg-red-500/10 text-red-500 border border-red-500/20'
+                           }`}>
+                             {s.risk_level}
+                           </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="p-4 border-t border-white/5 bg-zinc-950/30 flex justify-center">
+               <button className="text-[9px] font-mono text-zinc-500 hover:text-white transition-colors uppercase tracking-widest">Load full grid telemetry</button>
+            </div>
+          </div>
+
+          {/* Track Map */}
+          <div className="bg-zinc-900/60 backdrop-blur-md rounded-2xl border border-white/5 overflow-hidden flex flex-col shadow-2xl relative">
+            <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
+               <div>
+                  <h3 className="text-xs font-black text-white uppercase tracking-[0.3em]">Track Map</h3>
+                  <p className="font-mono text-[8px] text-zinc-500 mt-1 uppercase">
+                    {predictions.find(p => p.round_number === selectedRound)?.race_name || "Circuit Layout"}
+                  </p>
+               </div>
+               <div className="w-8 h-8 rounded-lg bg-[#E8002D] flex items-center justify-center shadow-[0_0_15px_rgba(232,0,45,0.4)]">
+                 <svg viewBox="0 0 24 24" fill="white" className="w-4 h-4"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+               </div>
+            </div>
+            <div className="flex-1 p-6 flex items-center justify-center relative min-h-[300px]">
+               <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 to-transparent pointer-events-none z-10"></div>
+               <Image 
+                src={`${STORAGE_URL}tracks/track_${selectedRound}.png`} 
+                alt="Track Layout" 
+                fill 
+                className="object-contain p-4 opacity-80 group-hover:opacity-100 transition-opacity"
+                unoptimized
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+               />
+               <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#E8002D] shadow-[0_0_8px_#E8002D]"></div>
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#00F3FF] shadow-[0_0_8px_#00F3FF]"></div>
+                  <div className="w-1.5 h-1.5 rounded-full bg-white/20"></div>
+               </div>
+            </div>
+            <div className="p-6 border-t border-white/5 bg-zinc-950/30">
+               <button className="w-full py-3 bg-white/5 border border-white/10 rounded-xl font-mono text-[10px] text-zinc-300 uppercase tracking-widest hover:bg-white/10 hover:border-white/20 transition-all">
+                 Expand Telemetry
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Head to Head Tab */}
       {activeTab === 'h2h' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -330,9 +427,7 @@ export default function DashboardTabs({ predictions, results }: { predictions: a
       {/* Accuracy Audit Tab */}
       {activeTab === 'audit' && (
         <div className="space-y-8">
-          {/* Summary Section: Global vs Session */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Global Stats */}
             <div className="bg-zinc-900/60 backdrop-blur-md p-6 rounded-2xl border border-white/5 relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                 <svg viewBox="0 0 24 24" fill="currentColor" className="w-24 h-24 text-white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
@@ -364,7 +459,6 @@ export default function DashboardTabs({ predictions, results }: { predictions: a
               </div>
             </div>
 
-            {/* Session Stats */}
             <div className="bg-zinc-900/60 backdrop-blur-md p-6 rounded-2xl border border-white/10 relative overflow-hidden group shadow-[0_0_40px_rgba(232,0,45,0.05)]">
               <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                  <div className="text-4xl font-black text-white italic">R{selectedRound}</div>
@@ -404,16 +498,6 @@ export default function DashboardTabs({ predictions, results }: { predictions: a
                   <span className="w-2 h-2 bg-[#E8002D] rounded-full animate-pulse"></span>
                   Round {selectedRound} Raw Comparison
                 </h3>
-                <div className="flex gap-4">
-                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-[#00F3FF] rounded-full"></div>
-                    <span className="font-mono text-[8px] text-zinc-400 uppercase">Within Range</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                    <span className="font-mono text-[8px] text-zinc-400 uppercase">Outlier</span>
-                  </div>
-                </div>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left font-mono text-[11px]">
