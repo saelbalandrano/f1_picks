@@ -91,9 +91,13 @@ export default function DashboardTabs({ predictions, results, strategy }: { pred
   const [activeTab, setActiveTab] = useState<'grid' | 'h2h' | 'audit' | 'strategy'>('grid');
   
   const rounds = useMemo(() => {
-    const allRounds = Array.from(new Set([...predictions.map(p => p.round_number), ...results.map(r => r.round_number)]));
+    const allRounds = Array.from(new Set([
+      ...predictions.map(p => p.round_number), 
+      ...results.map(r => r.round_number),
+      ...strategy.map(s => s.round_number)
+    ]));
     return allRounds.sort((a, b) => b - a);
-  }, [predictions, results]);
+  }, [predictions, results, strategy]);
 
   const [selectedRound, setSelectedRound] = useState(rounds[0] || 4);
 
