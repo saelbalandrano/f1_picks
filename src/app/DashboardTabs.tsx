@@ -348,6 +348,10 @@ export default function DashboardTabs({ predictions, results, strategy }: { pred
                 fill 
                 className="object-contain p-8 opacity-90 group-hover:opacity-100 transition-opacity drop-shadow-[0_0_30px_rgba(255,255,255,0.05)]"
                 unoptimized
+                onError={(e) => {
+                  e.currentTarget.src = 'https://raw.githubusercontent.com/saelbalandrano/f1_picks/main/public/track_placeholder.png'; // Fallback if exists or just hide
+                  e.currentTarget.style.opacity = '0.2';
+                }}
                />
                <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 flex gap-4">
                   <div className="flex items-center gap-2">

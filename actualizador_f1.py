@@ -190,6 +190,16 @@ if __name__ == "__main__":
     PHYSICS_FALLBACK = {
         1: {"laps": 58, "diff": 1.10}, 2: {"laps": 56, "diff": 0.90}, 
         3: {"laps": 53, "diff": 1.20}, 4: {"laps": 57, "diff": 1.15}, 
+        5: {"laps": 57, "diff": 1.05}, 6: {"laps": 50, "diff": 1.30}, 
+        7: {"laps": 70, "diff": 0.95}, 8: {"laps": 78, "diff": 1.45}, 
+        9: {"laps": 66, "diff": 1.00}, 10: {"laps": 71, "diff": 0.85}, 
+        11: {"laps": 52, "diff": 1.25}, 12: {"laps": 44, "diff": 1.40}, 
+        13: {"laps": 70, "diff": 1.10}, 14: {"laps": 72, "diff": 1.15}, 
+        15: {"laps": 53, "diff": 1.50}, 16: {"laps": 55, "diff": 1.10}, 
+        17: {"laps": 51, "diff": 1.35}, 18: {"laps": 62, "diff": 1.20}, 
+        19: {"laps": 56, "diff": 1.10}, 20: {"laps": 71, "diff": 0.90}, 
+        21: {"laps": 71, "diff": 1.05}, 22: {"laps": 50, "diff": 1.25}, 
+        23: {"laps": 57, "diff": 1.15}, 24: {"laps": 58, "diff": 1.00}
     }
     if res_cal.data:
         for row in res_cal.data:
