@@ -48,15 +48,16 @@ const getTeamLogo = (team: string) => {
   return mapping[team] || "Ferrari.webp";
 };
 
-export default function DashboardTabs({ predictions }: { predictions: any[] }) {
+export default function DashboardTabs({ predictions, results }: { predictions: any[], results: any[] }) {
   const [activeTab, setActiveTab] = useState<'grid' | 'h2h' | 'audit'>('grid');
   
   // Get unique rounds from predictions
   const rounds = Array.from(new Set(predictions.map(p => p.round_number))).sort((a, b) => b - a);
   const [selectedRound, setSelectedRound] = useState(rounds[0] || 4);
 
-  // Filter predictions for the selected round
+  // Filter predictions and results for the selected round
   const filteredPredictions = predictions.filter(p => p.round_number === selectedRound);
+  const filteredResults = results.filter(r => r.round_number === selectedRound);
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const STORAGE_URL = supabaseUrl + "/storage/v1/object/public/f1_assets/";
@@ -327,16 +328,66 @@ export default function DashboardTabs({ predictions }: { predictions: any[] }) {
 
       {/* Accuracy Audit Tab */}
       {activeTab === 'audit' && (
-        <div className="min-h-[400px] flex items-center justify-center border border-white/5 rounded-xl bg-zinc-900/30 backdrop-blur-sm relative overflow-hidden">
-           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(232,0,45,0.05)_0%,transparent_50%)]"></div>
-           <div className="text-center z-10">
-             <div className="w-16 h-16 border-t-2 border-r-2 border-[#E8002D] rounded-full animate-spin mx-auto mb-6"></div>
-             <h2 className="text-2xl font-bold text-white mb-2 uppercase tracking-widest">Model Calibration</h2>
-             <p className="text-zinc-400 font-mono text-sm max-w-md mx-auto">
-               Historical accuracy audit module is currently processing the latest race deltas.
-               Come back after the race weekend to view AI performance metrics.
-             </p>
-           </div>
+        <div className="space-y-6">
+          {filteredResults.length > 0 ? (
+            <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-xl overflow-hidden">
+              <div className="p-6 border-b border-white/5 bg-white/5">
+                <h3 className="text-lg font-bold text-white uppercase tracking-widest flex items-center gap-3">
+                  <span className="w-2 h-2 bg-[#E8002D] rounded-full animate-pulse"></span>
+                  Round {selectedRound} Audit Results
+                </h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left font-mono text-xs">
+                  <thead>
+                    <tr className="bg-zinc-950/50 text-zinc-500 uppercase">
+                      <th className="px-6 py-4">Driver</th>
+                      <th className="px-6 py-4">Predicted</th>
+                      <th className="px-6 py-4">Official</th>
+                      <th className="px-6 py-4">Delta</th>
+                      <th className="px-6 py-4">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {filteredResults.map(res => {
+                      const pred = filteredPredictions.find(p => p.code === res.code);
+                      const predPos = pred ? Math.round(pred.ai_predicted_pos) : '-';
+                      const delta = pred ? Math.abs(predPos - res.official_position) : '-';
+                      const isAccurate = typeof delta === 'number' && delta <= 2;
+                      
+                      return (
+                        <tr key={res.id} className="hover:bg-white/5 transition-colors">
+                          <td className="px-6 py-4 text-white font-bold">{res.code}</td>
+                          <td className="px-6 py-4 text-zinc-400">P{predPos}</td>
+                          <td className="px-6 py-4 text-[#E8002D] font-bold">P{res.official_position}</td>
+                          <td className="px-6 py-4 font-bold" style={{ color: typeof delta === 'number' && delta === 0 ? '#00F3FF' : '#ffffff' }}>
+                            {delta === 0 ? '±0' : `±${delta}`}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-1 rounded text-[10px] uppercase font-black ${isAccurate ? 'bg-[#00F3FF]/10 text-[#00F3FF]' : 'bg-red-500/10 text-red-500'}`}>
+                              {isAccurate ? 'Within Range' : 'Outlier'}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <div className="min-h-[400px] flex items-center justify-center border border-white/5 rounded-xl bg-zinc-900/30 backdrop-blur-sm relative overflow-hidden">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(232,0,45,0.05)_0%,transparent_50%)]"></div>
+              <div className="text-center z-10 p-8">
+                <div className="w-16 h-16 border-t-2 border-r-2 border-[#E8002D] rounded-full animate-spin mx-auto mb-6"></div>
+                <h2 className="text-2xl font-bold text-white mb-2 uppercase tracking-widest">Calibration Pending</h2>
+                <p className="text-zinc-400 font-mono text-sm max-w-md mx-auto">
+                  Official results for Round {selectedRound} have not been uploaded yet. 
+                  Audit will be available once the race session concludes.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
