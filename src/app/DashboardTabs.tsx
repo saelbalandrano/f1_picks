@@ -3,63 +3,60 @@
 import { useState } from 'react';
 import Image from 'next/image';
 
-const DRIVER_DETAILS: Record<string, { name: string, team: string }> = {
-  "LEC": { name: "Charles Leclerc", team: "Ferrari" },
-  "HAM": { name: "Lewis Hamilton", team: "Ferrari" },
-  "NOR": { name: "Lando Norris", team: "McLaren" },
-  "PIA": { name: "Oscar Piastri", team: "McLaren" },
-  "VER": { name: "Max Verstappen", team: "Red Bull Racing" },
-  "HAD": { name: "Isack Hadjar", team: "Red Bull Racing" },
-  "RUS": { name: "George Russell", team: "Mercedes" },
-  "ANT": { name: "Kimi Antonelli", team: "Mercedes" },
-  "ALO": { name: "Fernando Alonso", team: "Aston Martin" },
-  "STR": { name: "Lance Stroll", team: "Aston Martin" },
-  "ALB": { name: "Alexander Albon", team: "Williams" },
-  "SAI": { name: "Carlos Sainz", team: "Williams" },
-  "GAS": { name: "Pierre Gasly", team: "Alpine" },
-  "COL": { name: "Franco Colapinto", team: "Alpine" },
-  "HUL": { name: "Nico Hulkenberg", team: "Audi" },
-  "BOR": { name: "Gabriel Bortoleto", team: "Audi" },
-  "PER": { name: "Sergio Perez", team: "Cadillac" },
-  "BOT": { name: "Valtteri Bottas", team: "Cadillac" },
-  "LAW": { name: "Liam Lawson", team: "Racing Bulls" },
-  "LIN": { name: "Arvid Lindblad", team: "Racing Bulls" },
-  "OCO": { name: "Esteban Ocon", team: "Haas F1 Team" },
-  "BEA": { name: "Oliver Bearman", team: "Haas F1 Team" }
+const getDriverPhoto = (code: string) => {
+  const mapping: Record<string, string> = {
+    "LEC": "charles_leclerc.png",
+    "HAM": "lewis_hamilton.webp",
+    "NOR": "lando_norris.png",
+    "PIA": "oscar_piastri.png",
+    "VER": "max_verstappen.png",
+    "HAD": "isack_hadjar.png",
+    "RUS": "george_russell.png",
+    "ANT": "kimi_antonelli.png",
+    "ALO": "fernando_alonso.png",
+    "STR": "lance_stroll.png",
+    "ALB": "alexander_albon.png",
+    "SAI": "carlos_sainz.png",
+    "GAS": "pierre_gasly.png",
+    "COL": "Franco_Colapinto.webp",
+    "HUL": "nico_hulkenberg.png",
+    "BOR": "gabriel_bortoleto.png",
+    "PER": "sergio_perez.png",
+    "BOT": "valtteri_bottas.png",
+    "LAW": "liam_lawson.png",
+    "LIN": "arvid_lindblad.png",
+    "OCO": "esteban_ocon.png",
+    "BEA": "oliver_bearman.png"
+  };
+  return mapping[code] || (code.toLowerCase() + ".png");
 };
 
-const TEAM_COLORS: Record<string, string> = {
-  "Ferrari": "#E8002D",
-  "McLaren": "#FF8000",
-  "Red Bull Racing": "#3671C6",
-  "Mercedes": "#27F4D2",
-  "Aston Martin": "#229971",
-  "Williams": "#64C4FF",
-  "Alpine": "#0093CC",
-  "Audi": "#F50029",
-  "Cadillac": "#FFB81C",
-  "Racing Bulls": "#6692FF",
-  "Haas F1 Team": "#B6BABD",
-  "Unknown": "#ffffff"
-};
-
-const TEAM_ACRONYMS: Record<string, string> = {
-  "Ferrari": "FER",
-  "McLaren": "MCL",
-  "Red Bull Racing": "RBR",
-  "Mercedes": "MER",
-  "Aston Martin": "AMR",
-  "Williams": "WIL",
-  "Alpine": "ALP",
-  "Audi": "AUD",
-  "Cadillac": "CAD",
-  "Racing Bulls": "RBU",
-  "Haas F1 Team": "HAA",
-  "Unknown": "UNK"
+const getTeamLogo = (team: string) => {
+  const mapping: Record<string, string> = {
+    "Ferrari": "Ferrari.webp",
+    "Red Bull Racing": "Red_Bull_Racing.webp",
+    "Mercedes": "Mercedes.svg",
+    "McLaren": "McLaren.png",
+    "Aston Martin": "Aston_Martin.svg",
+    "Alpine": "Alpine.png",
+    "Williams": "Williams.png",
+    "Racing Bulls": "Racing_Bulls.png",
+    "Haas F1 Team": "Haas_F1_Team.png",
+    "Audi": "Audi.svg",
+    "Cadillac": "Cadillac.png"
+  };
+  return mapping[team] || "Ferrari.webp";
 };
 
 export default function DashboardTabs({ predictions }: { predictions: any[] }) {
   const [activeTab, setActiveTab] = useState<'grid' | 'h2h' | 'audit'>('grid');
+  
+  // Get unique rounds from predictions
+  const rounds = Array.from(new Set(predictions.map(p => p.round_number))).sort((a, b) => b - a);
+  const [selectedRound, setSelectedRound] = useState(rounds[0] || 4);
+
+  // Filter predictions for the selected round
+  const filteredPredictions = predictions.filter(p => p.round_number === selectedRound);
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const STORAGE_URL = supabaseUrl + "/storage/v1/object/public/f1_assets/";
@@ -67,35 +64,52 @@ export default function DashboardTabs({ predictions }: { predictions: any[] }) {
   return (
     <div className="w-full">
       {/* Tab Navigation */}
-      <nav className="flex items-center gap-6 mb-8 border-b border-white/10 pb-4 overflow-x-auto whitespace-nowrap">
-        <button 
-          onClick={() => setActiveTab('grid')}
-          className={`font-mono text-xs font-bold tracking-widest uppercase transition-all pb-4 -mb-[17px] ${activeTab === 'grid' ? 'text-[#E8002D] border-b-2 border-[#E8002D] shadow-[0_4px_10px_-2px_rgba(232,0,45,0.5)]' : 'text-zinc-500 hover:text-zinc-300'}`}
-        >
-          Master Grid
-        </button>
-        <button 
-          onClick={() => setActiveTab('h2h')}
-          className={`font-mono text-xs font-bold tracking-widest uppercase transition-all pb-4 -mb-[17px] ${activeTab === 'h2h' ? 'text-[#E8002D] border-b-2 border-[#E8002D] shadow-[0_4px_10px_-2px_rgba(232,0,45,0.5)]' : 'text-zinc-500 hover:text-zinc-300'}`}
-        >
-          Head-to-Head
-        </button>
-        <button 
-          onClick={() => setActiveTab('audit')}
-          className={`font-mono text-xs font-bold tracking-widest uppercase transition-all pb-4 -mb-[17px] ${activeTab === 'audit' ? 'text-[#E8002D] border-b-2 border-[#E8002D] shadow-[0_4px_10px_-2px_rgba(232,0,45,0.5)]' : 'text-zinc-500 hover:text-zinc-300'}`}
-        >
-          Accuracy Audit
-        </button>
-      </nav>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b border-white/10 pb-4">
+        <nav className="flex items-center gap-6 overflow-x-auto whitespace-nowrap">
+          <button 
+            onClick={() => setActiveTab('grid')}
+            className={`font-mono text-xs font-bold tracking-widest uppercase transition-all pb-4 -mb-[17px] ${activeTab === 'grid' ? 'text-[#E8002D] border-b-2 border-[#E8002D] shadow-[0_4px_10px_-2px_rgba(232,0,45,0.5)]' : 'text-zinc-500 hover:text-zinc-300'}`}
+          >
+            Master Grid
+          </button>
+          <button 
+            onClick={() => setActiveTab('h2h')}
+            className={`font-mono text-xs font-bold tracking-widest uppercase transition-all pb-4 -mb-[17px] ${activeTab === 'h2h' ? 'text-[#E8002D] border-b-2 border-[#E8002D] shadow-[0_4px_10px_-2px_rgba(232,0,45,0.5)]' : 'text-zinc-500 hover:text-zinc-300'}`}
+          >
+            Head-to-Head
+          </button>
+          <button 
+            onClick={() => setActiveTab('audit')}
+            className={`font-mono text-xs font-bold tracking-widest uppercase transition-all pb-4 -mb-[17px] ${activeTab === 'audit' ? 'text-[#E8002D] border-b-2 border-[#E8002D] shadow-[0_4px_10px_-2px_rgba(232,0,45,0.5)]' : 'text-zinc-500 hover:text-zinc-300'}`}
+          >
+            Accuracy Audit
+          </button>
+        </nav>
+
+        {/* Round Selector */}
+        <div className="flex items-center gap-3 bg-zinc-900/50 p-1 rounded-lg border border-white/5">
+          <span className="font-mono text-[10px] text-zinc-500 uppercase px-2">Select Race</span>
+          <select 
+            value={selectedRound}
+            onChange={(e) => setSelectedRound(Number(e.target.value))}
+            className="bg-zinc-800 text-white font-mono text-xs border-none rounded py-1 px-3 focus:ring-1 focus:ring-[#E8002D] outline-none"
+          >
+            {rounds.map(r => (
+              <option key={r} value={r}>Round {r}: {predictions.find(p => p.round_number === r)?.race_name || "Miami"}</option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       {/* Grid Tab */}
       {activeTab === 'grid' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {predictions.map((p, index) => {
+          {filteredPredictions.map((p, index) => {
             const details = DRIVER_DETAILS[p.code] || { name: p.code, team: "Unknown" };
             const teamColor = TEAM_COLORS[details.team] || "#00f3ff";
             const teamAcronym = TEAM_ACRONYMS[details.team] || "UNK";
-            const photoUrl = STORAGE_URL + "drivers/" + p.code + ".png";
+            const photoUrl = STORAGE_URL + "drivers/" + getDriverPhoto(p.code);
+            const logoUrl = STORAGE_URL + "logos/" + getTeamLogo(details.team);
             
             return (
               <div key={p.code} className="bg-zinc-900/60 backdrop-blur-md border border-white/5 hover:border-[#E8002D]/40 hover:shadow-[0_0_20px_rgba(232,0,45,0.15)] transition-all rounded-lg overflow-hidden flex flex-col relative group">
@@ -132,12 +146,20 @@ export default function DashboardTabs({ predictions }: { predictions: any[] }) {
                 {/* Details Section */}
                 <div className="p-6 -mt-12 relative z-30">
                   <div className="flex justify-between items-end mb-4">
-                    <div>
+                    <div className="flex-1">
                       <span className="font-mono text-[10px] text-zinc-400 uppercase tracking-[0.2em]" style={{ color: teamColor }}>{details.team}</span>
                       <h2 className="text-xl font-bold uppercase italic text-white tracking-tight">{details.name}</h2>
                     </div>
-                    <div className="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center font-black italic text-[10px] border border-white/10 text-zinc-300" style={{ borderColor: teamColor + '40', boxShadow: `0 0 10px ${teamColor}20` }}>
-                      {teamAcronym}
+                    <div className="relative w-10 h-10 flex items-center justify-center">
+                      <div className="absolute inset-0 bg-white/5 rounded-full scale-110"></div>
+                      <Image 
+                        src={logoUrl}
+                        alt={details.team}
+                        width={24}
+                        height={24}
+                        className="object-contain z-10"
+                        unoptimized
+                      />
                     </div>
                   </div>
 
@@ -182,7 +204,7 @@ export default function DashboardTabs({ predictions }: { predictions: any[] }) {
           {(() => {
             // Group predictions by team
             const teams: Record<string, any[]> = {};
-            predictions.forEach(p => {
+            filteredPredictions.forEach(p => {
               const details = DRIVER_DETAILS[p.code] || { name: p.code, team: "Unknown" };
               if (!teams[details.team]) teams[details.team] = [];
               teams[details.team].push({ ...p, details });
@@ -210,7 +232,7 @@ export default function DashboardTabs({ predictions }: { predictions: any[] }) {
                             </svg>
                           </div>
                           <Image 
-                            src={STORAGE_URL + "drivers/" + d1.code + ".png"}
+                            src={STORAGE_URL + "drivers/" + getDriverPhoto(d1.code)}
                             alt={d1.details.name}
                             fill
                             className="object-cover object-top z-10"
@@ -264,7 +286,7 @@ export default function DashboardTabs({ predictions }: { predictions: any[] }) {
                             </svg>
                           </div>
                           <Image 
-                            src={STORAGE_URL + "drivers/" + d2.code + ".png"}
+                            src={STORAGE_URL + "drivers/" + getDriverPhoto(d2.code)}
                             alt={d2.details.name}
                             fill
                             className="object-cover object-top z-10"
