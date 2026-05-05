@@ -34,17 +34,19 @@ def run_ai_prediction_engine(target_round, supabase, calendar):
     df_qualy = pd.DataFrame(res_qualy.data)
 
     driver_codes = df_target['code'].unique()
-    talent_bonuses = []
+    driver_stats_history = []
     
     past_rounds = [r for r in calendar.keys() if r < target_round]
 
-    # Calculate talent bonuses from past rounds
+    # Calculate talent bonuses AND chaos factors from past rounds
     for code in driver_codes:
         bonus_acumulado = 0.0
+        errores_acumulados = []
         carreras_evaluadas = 0
+        
         for ronda in past_rounds:
             real_pos_row = df_official[(df_official['round_number'] == ronda) & (df_official['code'] == code)]
-            if real_pos_row.empty or real_pos_row.iloc[0]['official_position'] > 17: continue
+            if real_pos_row.empty or real_pos_row.iloc[0]['official_position'] > 18: continue
             real_pos = real_pos_row.iloc[0]['official_position']
             
             all_round_data = df_race[df_race['round_number'] == ronda]
@@ -59,25 +61,39 @@ def run_ai_prediction_engine(target_round, supabase, calendar):
             
             df_sim['theo_time'] = df_sim['avg_delta'] * 50 + (df_sim['Grid_Slot'] * 1.5)
             df_sim = df_sim.sort_values('theo_time').reset_index(drop=True)
-            pred_pos = df_sim.index[df_sim['code'] == code].tolist()
-            if pred_pos:
-                raw_bonus = ((pred_pos[0] + 1) - real_pos) * -0.015 
+            pred_pos_list = df_sim.index[df_sim['code'] == code].tolist()
+            
+            if pred_pos_list:
+                pred_pos = pred_pos_list[0] + 1
+                # Talent: how much they overperform the car
+                raw_bonus = (pred_pos - real_pos) * -0.015 
                 bonus_acumulado += max(-0.15, min(raw_bonus, 0.15))
+                
+                # Chaos: how erratic they are (variance in error)
+                errores_acumulados.append(abs(pred_pos - real_pos))
                 carreras_evaluadas += 1
                 
         final_bonus = bonus_acumulado / carreras_evaluadas if carreras_evaluadas > 0 else 0.0
-        talent_bonuses.append({'code': code, 'talent_bonus_s': final_bonus})
+        # Chaos Scale: Base of 4.0 + sensitivity to historical error
+        # If mean error is 1 pos, chaos is 5.5. If error is 4 pos, chaos is 10.0.
+        avg_error = np.mean(errores_acumulados) if errores_acumulados else 2.0
+        final_chaos = 4.0 + (avg_error * 1.5)
+        final_chaos = max(4.0, min(final_chaos, 12.0))
+        
+        driver_stats_history.append({
+            'code': code, 
+            'talent_bonus_s': final_bonus,
+            'caos_scale': final_chaos
+        })
 
-    df_talent = pd.DataFrame(talent_bonuses)
+    df_stats = pd.DataFrame(driver_stats_history)
     driver_race_stats = df_target.groupby('code').apply(calculate_weighted_deltas, include_groups=False).reset_index()
 
-    # EARLY PREDICTION FALLBACK: Si no hay Qualy, usamos Driver Momentum para armar una parrilla teórica
     grid_target_raw = df_qualy[df_qualy['round_number'] == target_round]
     if not grid_target_raw.empty:
         grid_target = grid_target_raw.sort_values('delta_to_pole_s').reset_index(drop=True)
         grid_target['Grid_Slot'] = grid_target.index + 1
     else:
-        # Fallback pre-qualy (viernes)
         res_momentum = supabase.table("driver_momentum").select("drivers(code), current_form_score").execute()
         momentum_data = [{"code": r['drivers']['code'], "score": r['current_form_score']} for r in res_momentum.data]
         grid_target = pd.DataFrame(momentum_data)
@@ -85,10 +101,10 @@ def run_ai_prediction_engine(target_round, supabase, calendar):
             grid_target = grid_target.sort_values('score', ascending=False).reset_index(drop=True)
             grid_target['Grid_Slot'] = grid_target.index + 1
         else:
-            return pd.DataFrame() # Sin datos para simular
+            return pd.DataFrame()
 
     df_final_sim = pd.merge(grid_target[['Grid_Slot', 'code']], driver_race_stats, on='code', how='inner')
-    df_final_sim = pd.merge(df_final_sim, df_talent, on='code', how='left').fillna(0)
+    df_final_sim = pd.merge(df_final_sim, df_stats, on='code', how='left').fillna({'talent_bonus_s': 0, 'caos_scale': 6.0})
 
     if target_round not in calendar:
         return pd.DataFrame()
@@ -98,24 +114,22 @@ def run_ai_prediction_engine(target_round, supabase, calendar):
     num_simulations = 10000
     num_drivers = len(df_final_sim)
 
-    if num_drivers == 0:
-        return pd.DataFrame()
-
     base_paces = 90.0 + df_final_sim['avg_delta'].values + df_final_sim['talent_bonus_s'].values
     degradations = df_final_sim['avg_deg'].values
     grid_slots = df_final_sim['Grid_Slot'].values
+    caos_scales = df_final_sim['caos_scale'].values
 
     total_race_deg = degradations * ((17 * 18) / 2) * (laps / 17)
     launch_penalty = (grid_slots - 1) * 1.5 * diff_track
     dirty_air_penalty = (grid_slots - 1) * 0.03 * laps * diff_track
 
     np.random.seed(42)
-    caos_matrix = np.random.normal(loc=0, scale=6.0, size=(num_simulations, num_drivers))
-    theoretical_times_base = (base_paces * laps) + total_race_deg + launch_penalty + dirty_air_penalty
+    # Generate per-driver chaos matrix
+    caos_matrix = np.array([np.random.normal(loc=0, scale=s, size=num_simulations) for s in caos_scales]).T
     
+    theoretical_times_base = (base_paces * laps) + total_race_deg + launch_penalty + dirty_air_penalty
     ranks_A = np.argsort(np.argsort(theoretical_times_base + caos_matrix, axis=1), axis=1) + 1
     
-    # Cálculo de Probabilidades de Mercado
     prob_win = (ranks_A == 1).mean(axis=0) * 100
     prob_podium = (ranks_A <= 3).mean(axis=0) * 100
     prob_top6 = (ranks_A <= 6).mean(axis=0) * 100
@@ -125,6 +139,7 @@ def run_ai_prediction_engine(target_round, supabase, calendar):
         'code': df_final_sim['code'], 
         'ai_predicted_pos': [np.mean(ranks_A[:, i]) for i in range(num_drivers)],
         'ai_talent_bonus': df_final_sim['talent_bonus_s'].values,
+        'ai_caos_scale': caos_scales,
         'ai_base_pace': base_paces,
         'prob_win': prob_win,
         'prob_podium': prob_podium,
