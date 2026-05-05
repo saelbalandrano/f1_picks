@@ -109,9 +109,7 @@ export default async function Home() {
                 {/* Driver Photo */}
                 <div className="absolute -bottom-4 -right-4 h-[180px] w-[180px] z-0 opacity-90 group-hover:scale-105 transition-transform duration-500 drop-shadow-2xl">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={photoUrl} alt={p.code} className="object-contain h-full w-full" 
-                    onError={(e) => { e.currentTarget.style.display = 'none'; }} 
-                  />
+                  <img src={photoUrl} alt={p.code} className="object-contain h-full w-full" />
                 </div>
               </div>
 
