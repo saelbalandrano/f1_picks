@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: #0b0b0b;
+            color: #e5e2e1;
+            margin: 0;
+            overflow-x: hidden;
+        }
+        .glass-card {
+            background: rgba(26, 26, 26, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 0, 0, 0.1);
+        }
+        .glass-card:hover {
+            border: 1px solid rgba(255, 0, 0, 0.4);
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.15);
+        }
+        .scanline-overlay {
+            background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.1) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+        }
+        .neon-text-red {
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.7);
+        }
+        .pixel-grid {
+            background-image: radial-gradient(rgba(255, 0, 0, 0.1) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "error-container": "#93000a",
+                        "outline-variant": "#603e39",
+                        "surface-dim": "#131313",
+                        "on-tertiary-fixed": "#002022",
+                        "outline": "#b18780",
+                        "secondary-fixed-dim": "#c8c6c5",
+                        "tertiary-fixed": "#7df4ff",
+                        "surface-variant": "#353534",
+                        "inverse-on-surface": "#313030",
+                        "secondary-fixed": "#e5e2e1",
+                        "surface-container-highest": "#353534",
+                        "tertiary-container": "#00a0aa",
+                        "surface-tint": "#ffb4a8",
+                        "on-primary-container": "#5c0000",
+                        "on-primary-fixed": "#410000",
+                        "secondary": "#c8c6c5",
+                        "on-error-container": "#ffdad6",
+                        "primary-container": "#ff5540",
+                        "surface-container-high": "#2a2a2a",
+                        "on-primary-fixed-variant": "#930100",
+                        "inverse-primary": "#c00100",
+                        "surface-bright": "#3a3939",
+                        "on-tertiary": "#00363a",
+                        "on-surface": "#e5e2e1",
+                        "primary-fixed": "#ffdad4",
+                        "background": "#131313",
+                        "primary-fixed-dim": "#ffb4a8",
+                        "primary": "#ffb4a8",
+                        "surface-container": "#201f1f",
+                        "inverse-surface": "#e5e2e1",
+                        "tertiary": "#00dbe9",
+                        "secondary-container": "#474746",
+                        "surface": "#131313",
+                        "on-secondary-container": "#b7b5b4",
+                        "on-tertiary-container": "#002f33",
+                        "on-primary": "#690100",
+                        "on-secondary-fixed-variant": "#474746",
+                        "on-secondary-fixed": "#1c1b1b",
+                        "on-tertiary-fixed-variant": "#004f54",
+                        "on-background": "#e5e2e1",
+                        "on-error": "#690005",
+                        "surface-container-low": "#1c1b1b",
+                        "surface-container-lowest": "#0e0e0e",
+                        "on-surface-variant": "#ebbbb4",
+                        "error": "#ffb4ab",
+                        "on-secondary": "#313030",
+                        "tertiary-fixed-dim": "#00dbe9"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    fontFamily: {
+                        "headline-md": ["Space Grotesk"],
+                        "display-xl": ["Space Grotesk"],
+                        "body-lg": ["Space Grotesk"],
+                        "data-mono": ["Space Grotesk"],
+                        "label-caps": ["Space Grotesk"],
+                        "headline-lg": ["Space Grotesk"],
+                        "body-md": ["Space Grotesk"]
+                    },
+                    fontSize: {
+                        "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                        "display-xl": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "700"}],
+                        "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "data-mono": ["14px", {"lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                        "label-caps": ["12px", {"lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "700"}],
+                        "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface-container-lowest min-h-screen pixel-grid">
+<!-- TopNavBar -->
+<nav class="sticky top-0 w-full z-50 flex justify-between items-center px-8 h-16 bg-zinc-950/70 backdrop-blur-2xl border-b border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.8)]">
+<div class="flex items-center gap-8">
+<span class="text-xl font-black tracking-tighter text-[#00F3FF] italic">APEX TELEMETRY</span>
+<div class="hidden md:flex gap-6">
+<!-- Master Grid Active State -->
+<a class="font-['Space_Grotesk'] tracking-widest uppercase text-xs font-bold text-[#ff5540] border-b-2 border-[#ff5540] shadow-[0_4px_12px_rgba(255,85,64,0.4)] pb-1 transition-all" href="#">Master Grid</a>
+<a class="font-['Space_Grotesk'] tracking-widest uppercase text-xs font-bold text-zinc-500 hover:text-zinc-300 pb-1 transition-colors duration-200" href="#">Head-to-Head</a>
+<a class="font-['Space_Grotesk'] tracking-widest uppercase text-xs font-bold text-zinc-500 hover:text-zinc-300 pb-1 transition-colors duration-200" href="#">Accuracy Audit</a>
+</div>
+</div>
+<div class="flex items-center gap-4 text-[#00F3FF]">
+<button class="material-symbols-outlined p-2 hover:bg-white/5 transition-colors duration-200 active:scale-95">notifications</button>
+<button class="material-symbols-outlined p-2 hover:bg-white/5 transition-colors duration-200 active:scale-95">account_circle</button>
+</div>
+</nav>
+<main class="relative pt-8 px-8 pb-16">
+<!-- Dashboard Header -->
+<header class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div>
+<div class="flex items-center gap-2 mb-2">
+<span class="w-2 h-2 bg-[#ff5540] animate-pulse"></span>
+<span class="font-label-caps text-label-caps text-primary-container tracking-widest uppercase">Live Session Intelligence</span>
+</div>
+<h1 class="font-display-xl text-display-xl text-on-surface uppercase italic">Master Grid Power Ranking</h1>
+<p class="font-body-md text-body-md text-zinc-500 max-w-2xl mt-2">Real-time predictive modeling based on tire degradation, engine mapping, and historical sector performance. Rankings updated every sector.</p>
+</div>
+<div class="flex gap-4">
+<div class="glass-card px-6 py-3 border-l-4 border-l-[#ff5540]">
+<span class="block font-label-caps text-[10px] text-zinc-500 uppercase">Track Condition</span>
+<span class="font-headline-md text-headline-md text-on-surface uppercase">Optimum</span>
+</div>
+<div class="glass-card px-6 py-3 border-l-4 border-l-tertiary">
+<span class="block font-label-caps text-[10px] text-zinc-500 uppercase">Confidence Level</span>
+<span class="font-headline-md text-headline-md text-tertiary uppercase">98.4%</span>
+</div>
+</div>
+</header>
+<!-- Bento Grid of Driver Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+<!-- Card 1: P1 -->
+<div class="glass-card group relative overflow-hidden flex flex-col">
+<div class="absolute top-0 right-0 p-4 z-10">
+<span class="font-display-xl text-6xl italic font-black text-primary-container/20 group-hover:text-primary-container transition-colors duration-500 neon-text-red">01</span>
+</div>
+<div class="relative h-64 overflow-hidden">
+<img class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 scale-110 group-hover:scale-100" data-alt="A cinematic, high-contrast portrait of a professional Formula 1 racing driver in a red Ferrari racing suit. The lighting is dramatic and moody, with sharp red rim lights highlighting the contours of the helmet and suit against a dark, technical carbon fiber background. The atmosphere is intense and focused, reflecting a high-performance sports aesthetic with a deep black and vibrant Ferrari red color palette." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8vHb75LoEN9L8m2ApVEKShW2JlrLxdOZCfOw5V_rFbY6MCGmv22fhFdMK2Q68X-WEv3___nV9AToe8mpmrJnP0bRgHn0Y4EEsZPQsDaoenlnNP9iagqjVifAtGVoYSi09reZn_lmoiVmjcGctgOlwa54TQXQk183D0SRwfNTyybqrlSxKwiu62HVnAR9LOQCS6I29Rh3QHv_oQJ-2pyArdfHXY2k9lEbQNsA6YCtSPRqUF9cTDdb7OMuqw4sVEawE_lYsGaiCaOBP"/>
+<div class="absolute inset-0 bg-gradient-to-t from-[#0b0b0b] via-transparent to-transparent"></div>
+</div>
+<div class="p-6 -mt-12 relative z-20">
+<div class="flex justify-between items-end mb-4">
+<div>
+<span class="font-label-caps text-[10px] text-primary-container uppercase tracking-[0.2em]">Scuderia Ferrari</span>
+<h2 class="font-headline-md text-headline-md text-on-surface uppercase italic">Charles Leclerc</h2>
+</div>
+<img class="h-10 opacity-60 group-hover:opacity-100 transition-opacity" data-alt="The official Ferrari logo featuring the iconic black prancing horse on a yellow shield, presented with a clean, high-resolution aesthetic. The logo is set against a dark, minimalist background to maintain the high-performance technical feel of the F1 dashboard, utilizing professional branding and vector-like clarity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAbo2f2WnF_3h_aRRt_N3V-4XXhDG3KzKSxORKd2jGm5o01zAu-a4zMYf0IRz-DJWjOX2iFYR6_UgWEswSkAh1kqBTDuixR0DsSl4aqD2pqHQnbzqNKHdmWOhlpDJvAkEFYlnpDs3r8nRMbZ6C6lIPDO7y9OuNWhTaHRe-0GMPC76RzlyO22m1ECgUB13xf37KxWD8Mad8RmhPpeiermbNZrXg2F5vSzK-perirD4Vi0UbsxGPJQYuRXymUBwSLVl4KrtWvp7KmXP1u"/>
+</div>
+<div class="space-y-4 pt-4 border-t border-white/5">
+<div class="flex justify-between items-center">
+<span class="font-label-caps text-zinc-500">Win Probability</span>
+<div class="flex items-center gap-3 flex-1 ml-4">
+<div class="h-1 bg-white/5 flex-1 overflow-hidden">
+<div class="h-full bg-primary-container w-[74%] shadow-[0_0_8px_rgba(255,85,64,0.6)]"></div>
+</div>
+<span class="font-data-mono text-on-surface w-12 text-right">74%</span>
+</div>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-label-caps text-zinc-500">Podium Chance</span>
+<div class="flex items-center gap-3 flex-1 ml-4">
+<div class="h-1 bg-white/5 flex-1 overflow-hidden">
+<div class="h-full bg-tertiary w-[92%] shadow-[0_0_8px_rgba(0,219,233,0.6)]"></div>
+</div>
+<span class="font-data-mono text-on-surface w-12 text-right">92%</span>
+</div>
+</div>
+<div class="flex justify-between items-center bg-white/5 p-3 rounded">
+<span class="font-label-caps text-zinc-400">Base Pace Avg.</span>
+<span class="font-data-mono text-primary-container font-bold">1:31.204</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 2: P2 -->
+<div class="glass-card group relative overflow-hidden flex flex-col">
+<div class="absolute top-0 right-0 p-4 z-10">
+<span class="font-display-xl text-6xl italic font-black text-primary-container/10 group-hover:text-primary-container transition-colors duration-500">02</span>
+</div>
+<div class="relative h-64 overflow-hidden">
+<img class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 scale-110 group-hover:scale-100" data-alt="A professional F1 driver profile shot in a dark navy Red Bull Racing suit. The image features high-contrast lighting with cold blue and warm white tones, capturing a serious and determined expression. The background is a blurred garage interior with glowing technical monitors, keeping a high-tech, data-driven visual style consistent with an elite racing environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCvvOrAvhDPxpBD7Iyz0-xc9V1ogpIW9Z-O5Bs2Ew2F6VeCEmit_Dak7G2R6r8cGjyXTW-p3FtG21BVBLpZGMkRC480xDkbwV51yvhrcYTRRuGmDTWtvgTaGfbUl_RJ5lEUR6APw-Tf-2GiWeQIgWisaAYF1ghltnD_Pu2GYmE_EmPUMT8qqEMORg0LmkIRoJoqofhXr8lkDqUbgEc3-9oWqtOw9YKyyZj6ldCJhwUeHTEMuDAUAYOVIAxFPN-VikY3bzSrlVevWPp2"/>
+<div class="absolute inset-0 bg-gradient-to-t from-[#0b0b0b] via-transparent to-transparent"></div>
+</div>
+<div class="p-6 -mt-12 relative z-20">
+<div class="flex justify-between items-end mb-4">
+<div>
+<span class="font-label-caps text-[10px] text-zinc-500 uppercase tracking-[0.2em]">Red Bull Racing</span>
+<h2 class="font-headline-md text-headline-md text-on-surface uppercase italic">Max Verstappen</h2>
+</div>
+<div class="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center font-black italic text-[8px] border border-white/10">RBR</div>
+</div>
+<div class="space-y-4 pt-4 border-t border-white/5">
+<div class="flex justify-between items-center">
+<span class="font-label-caps text-zinc-500">Win Probability</span>
+<div class="flex items-center gap-3 flex-1 ml-4">
+<div class="h-1 bg-white/5 flex-1 overflow-hidden">
+<div class="h-full bg-primary-container w-[61%]"></div>
+</div>
+<span class="font-data-mono text-on-surface w-12 text-right">61%</span>
+</div>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-label-caps text-zinc-500">Podium Chance</span>
+<div class="flex items-center gap-3 flex-1 ml-4">
+<div class="h-1 bg-white/5 flex-1 overflow-hidden">
+<div class="h-full bg-tertiary w-[88%]"></div>
+</div>
+<span class="font-data-mono text-on-surface w-12 text-right">88%</span>
+</div>
+</div>
+<div class="flex justify-between items-center bg-white/5 p-3 rounded">
+<span class="font-label-caps text-zinc-400">Base Pace Avg.</span>
+<span class="font-data-mono text-on-surface">1:31.355</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 3: P3 -->
+<div class="glass-card group relative overflow-hidden flex flex-col">
+<div class="absolute top-0 right-0 p-4 z-10">
+<span class="font-display-xl text-6xl italic font-black text-primary-container/10 group-hover:text-primary-container transition-colors duration-500">03</span>
+</div>
+<div class="relative h-64 overflow-hidden">
+<img class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 scale-110 group-hover:scale-100" data-alt="Close-up of a racing helmet featuring intricate carbon fiber textures and bright red aerodynamic accents. The helmet is reflecting a neon-lit pit lane, with vibrant red and cyan streaks of light. The visual style is hyper-detailed and futuristic, emphasizing the mechanical precision and high-speed energy of Formula 1 racing, within a dark-mode professional aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWc6Zj3Ec8z9cIeDoXI1mJ--b3X0m0UF4Y1aZKU-8OoDUn8b8BG2o2S02Lur1Fb9RI6P82oDYgYUZlWKRx6EE9UCe2fFgw823h57qNXUjFTpv7km7hf8Xn2kxFIBqwXA197cRA52Vq8t6HSsgD8LeW8PVaxSA_SSgJ7HakyiuQrE5IQ1dKJ5rajOT42aPrcpGhHu6iR9MRUX3HUjdHjqUdRSCE3-rRyAeRyfmi-18ppBH-6fNQvr1xCZ8NphYimEU_Xhwpmsz3ruhE"/>
+<div class="absolute inset-0 bg-gradient-to-t from-[#0b0b0b] via-transparent to-transparent"></div>
+</div>
+<div class="p-6 -mt-12 relative z-20">
+<div class="flex justify-between items-end mb-4">
+<div>
+<span class="font-label-caps text-[10px] text-zinc-500 uppercase tracking-[0.2em]">McLaren Formula 1</span>
+<h2 class="font-headline-md text-headline-md text-on-surface uppercase italic">Lando Norris</h2>
+</div>
+<div class="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center font-black italic text-[8px] border border-white/10">MCL</div>
+</div>
+<div class="space-y-4 pt-4 border-t border-white/5">
+<div class="flex justify-between items-center">
+<span class="font-label-caps text-zinc-500">Win Probability</span>
+<div class="flex items-center gap-3 flex-1 ml-4">
+<div class="h-1 bg-white/5 flex-1 overflow-hidden">
+<div class="h-full bg-primary-container w-[28%]"></div>
+</div>
+<span class="font-data-mono text-on-surface w-12 text-right">28%</span>
+</div>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-label-caps text-zinc-500">Podium Chance</span>
+<div class="flex items-center gap-3 flex-1 ml-4">
+<div class="h-1 bg-white/5 flex-1 overflow-hidden">
+<div class="h-full bg-tertiary w-[75%]"></div>
+</div>
+<span class="font-data-mono text-on-surface w-12 text-right">75%</span>
+</div>
+</div>
+<div class="flex justify-between items-center bg-white/5 p-3 rounded">
+<span class="font-label-caps text-zinc-400">Base Pace Avg.</span>
+<span class="font-data-mono text-on-surface">1:31.622</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 4: P4 -->
+<div class="glass-card group relative overflow-hidden flex flex-col">
+<div class="absolute top-0 right-0 p-4 z-10">
+<span class="font-display-xl text-6xl italic font-black text-primary-container/10 group-hover:text-primary-container transition-colors duration-500">04</span>
+</div>
+<div class="relative h-64 overflow-hidden">
+<img class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 scale-110 group-hover:scale-100" data-alt="Dramatic side profile of an F1 car nose cone, showing the sleek aerodynamics and intricate sponsor decals. The car is painted in a deep metallic red with carbon fiber detailing. The environment is a dark studio with sharp light strips reflecting off the glossy bodywork, creating a sophisticated, high-end technical feel consistent with top-tier motorsport telemetry dashboards." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDjcKvLHIrxgBCYypNpHlWBnO_23yjNhDJ5QaoE2ud6rapMG9s-BbVLcQ2Ge6uDwzveOFRSIhXtKNXI_rWrT17XhPFs6tbbwiaSQ1ljDj6WpWkrc-h3SliEqLhT_Idhf3dlL55EmnhMEnJQSk-0WZoJv9z0xnbZYmjXlF6WGuqaRwmBhrMqdPmLMFG3b-iGUUN0svVDR3XXNTiY5NDJhXIoBpfGZgjPwOVIkbXUCACG-pFKeDncYDJB_rz_ERALMaMVg7X0plL-cIV"/>
+<div class="absolute inset-0 bg-gradient-to-t from-[#0b0b0b] via-transparent to-transparent"></div>
+</div>
+<div class="p-6 -mt-12 relative z-20">
+<div class="flex justify-between items-end mb-4">
+<div>
+<span class="font-label-caps text-[10px] text-zinc-500 uppercase tracking-[0.2em]">Mercedes-AMG</span>
+<h2 class="font-headline-md text-headline-md text-on-surface uppercase italic">Lewis Hamilton</h2>
+</div>
+<div class="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center font-black italic text-[8px] border border-white/10">AMG</div>
+</div>
+<div class="space-y-4 pt-4 border-t border-white/5">
+<div class="flex justify-between items-center">
+<span class="font-label-caps text-zinc-500">Win Probability</span>
+<div class="flex items-center gap-3 flex-1 ml-4">
+<div class="h-1 bg-white/5 flex-1 overflow-hidden">
+<div class="h-full bg-primary-container w-[14%]"></div>
+</div>
+<span class="font-data-mono text-on-surface w-12 text-right">14%</span>
+</div>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-label-caps text-zinc-500">Podium Chance</span>
+<div class="flex items-center gap-3 flex-1 ml-4">
+<div class="h-1 bg-white/5 flex-1 overflow-hidden">
+<div class="h-full bg-tertiary w-[52%]"></div>
+</div>
+<span class="font-data-mono text-on-surface w-12 text-right">52%</span>
+</div>
+</div>
+<div class="flex justify-between items-center bg-white/5 p-3 rounded">
+<span class="font-label-caps text-zinc-400">Base Pace Avg.</span>
+<span class="font-data-mono text-on-surface">1:31.988</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Secondary Data Section (Bento Grid Style) -->
+<div class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+<div class="lg:col-span-2 glass-card p-6 border-l-4 border-l-[#ff5540]">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-headline-md text-headline-md uppercase italic text-on-surface">Strategy Simulation Matrix</h3>
+<button class="font-label-caps text-[10px] bg-primary-container text-on-primary-container px-3 py-1 uppercase tracking-tighter">Live Updates</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="border-b border-white/10">
+<th class="pb-4 font-label-caps text-zinc-500 uppercase">Driver</th>
+<th class="pb-4 font-label-caps text-zinc-500 uppercase">Pit Window</th>
+<th class="pb-4 font-label-caps text-zinc-500 uppercase">Tire Life</th>
+<th class="pb-4 font-label-caps text-zinc-500 uppercase">Optimal Strategy</th>
+<th class="pb-4 font-label-caps text-zinc-500 uppercase">Risk</th>
+</tr>
+</thead>
+<tbody class="font-data-mono text-sm">
+<tr class="border-b border-white/5">
+<td class="py-4 text-[#ff5540]">LECLERC</td>
+<td class="py-4 text-on-surface">Laps 14-18</td>
+<td class="py-4 text-on-surface">S: 85%</td>
+<td class="py-4 text-on-surface">S-M-H</td>
+<td class="py-4"><span class="bg-green-500/20 text-green-400 px-2 py-0.5 rounded text-[10px]">LOW</span></td>
+</tr>
+<tr class="border-b border-white/5">
+<td class="py-4 text-on-surface">VERSTAPPEN</td>
+<td class="py-4 text-on-surface">Laps 16-20</td>
+<td class="py-4 text-on-surface">S: 79%</td>
+<td class="py-4 text-on-surface">S-H-S</td>
+<td class="py-4"><span class="bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded text-[10px]">MED</span></td>
+</tr>
+<tr>
+<td class="py-4 text-on-surface">NORRIS</td>
+<td class="py-4 text-on-surface">Laps 12-15</td>
+<td class="py-4 text-on-surface">S: 72%</td>
+<td class="py-4 text-on-surface">S-M-M</td>
+<td class="py-4"><span class="bg-red-500/20 text-red-400 px-2 py-0.5 rounded text-[10px]">HIGH</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="glass-card p-6 flex flex-col justify-between">
+<div>
+<h3 class="font-headline-md text-headline-md uppercase italic text-on-surface mb-2">Track Map</h3>
+<p class="font-label-caps text-[10px] text-zinc-500 mb-6 uppercase">Silverstone Circuit - GBR</p>
+<div class="aspect-square w-full relative bg-zinc-900/50 rounded flex items-center justify-center overflow-hidden">
+<div class="absolute inset-0 opacity-20 pixel-grid"></div>
+<img class="w-4/5 h-4/5 object-contain opacity-70" data-alt="A stylized technical layout of the Silverstone F1 circuit in a minimalist neon-on-black aesthetic. The track is represented by a sharp, glowing white line with key sector markers highlighted in vibrant Ferrari red. The background features a subtle topographic grid and data overlays, creating a high-end racing telemetry look." data-location="Silverstone" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDzzY7Q1Ihukmd2V5ZwNP-hYKfB2zqwej-C7_YoiJe0bDcVTPvttGjgioIFZCihd9PWjWFgL4zw6GMuiRXt4uw4RkW-ohSG_EKLCSxhyKmy02sQpVbY8mqHWGuUfzhRwmkXMcMVuF0bwBK3I3K3gPDPZY37XJSQPDOWHX6dFQqmGCrdl9wZfkSQo5XOpns7S9VfShzhEgyw70wDs4RAn9Vr9vqJrS2zJPQTeB8q9TMR5SJhdvxkYqf9EYC9a_aWVbTagt_Za3QTKJke"/>
+<div class="absolute top-1/4 left-1/4 w-3 h-3 bg-red-500 rounded-full animate-ping"></div>
+<div class="absolute bottom-1/3 right-1/4 w-2 h-2 bg-blue-500 rounded-full"></div>
+</div>
+</div>
+<button class="w-full mt-6 py-4 bg-transparent border border-white/20 font-label-caps text-on-surface uppercase hover:bg-white/5 transition-all active:scale-95">Expand Telemetry</button>
+</div>
+</div>
+</main>
+<!-- SideNavBar (Suppressed for Main Dashboard Grid focus as per Shell Visibility rules, but keeping TopNavBar as primary) -->
+<!-- Floating Action Button Contextual (Predictor Action) -->
+<button class="fixed bottom-8 right-8 bg-[#ff5540] text-white w-16 h-16 rounded-full shadow-[0_0_20px_rgba(255,0,0,0.5)] flex items-center justify-center group hover:scale-110 active:scale-95 transition-all z-50">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">bolt</span>
+<span class="absolute right-20 bg-zinc-950 text-white px-4 py-2 font-label-caps uppercase text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-[#ff5540]">LOCK PREDICTION</span>
+</button>
+</body></html>

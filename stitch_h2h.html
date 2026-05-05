@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed": "#e2e2e8",
+                        "secondary-fixed": "#ffdad5",
+                        "on-surface-variant": "#b9cacb",
+                        "on-tertiary-fixed-variant": "#45474b",
+                        "on-primary-fixed-variant": "#004f53",
+                        "on-error": "#690005",
+                        "on-secondary": "#690003",
+                        "outline": "#849495",
+                        "primary": "#e3fdff",
+                        "primary-container": "#00f3ff",
+                        "inverse-surface": "#e0e2e8",
+                        "tertiary-fixed-dim": "#c6c6cc",
+                        "secondary-fixed-dim": "#ffb4aa",
+                        "surface-container-lowest": "#0b0f12",
+                        "surface": "#101417",
+                        "background": "#101417",
+                        "secondary": "#ffb4aa",
+                        "inverse-primary": "#00696f",
+                        "on-secondary-container": "#fffbff",
+                        "on-error-container": "#ffdad6",
+                        "surface-variant": "#323539",
+                        "primary-fixed-dim": "#00dce6",
+                        "on-secondary-fixed-variant": "#930006",
+                        "inverse-on-surface": "#2d3135",
+                        "secondary-container": "#ea0011",
+                        "surface-dim": "#101417",
+                        "surface-bright": "#36393e",
+                        "error": "#ffb4ab",
+                        "on-primary": "#00373a",
+                        "outline-variant": "#3a494b",
+                        "surface-tint": "#00dce6",
+                        "tertiary-container": "#dbdbe1",
+                        "surface-container-high": "#272a2e",
+                        "on-tertiary-container": "#5e6065",
+                        "surface-container-highest": "#323539",
+                        "on-secondary-fixed": "#410001",
+                        "on-surface": "#e0e2e8",
+                        "primary-fixed": "#6ff6ff",
+                        "surface-container-low": "#181c20",
+                        "tertiary": "#f8f7fd",
+                        "error-container": "#93000a",
+                        "on-primary-container": "#006b71",
+                        "on-tertiary": "#2f3035",
+                        "on-tertiary-fixed": "#1a1c20",
+                        "on-primary-fixed": "#002022",
+                        "surface-container": "#1c2024",
+                        "on-background": "#e0e2e8"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "label-caps": ["Space Grotesk"],
+                        "mono-data": ["Space Grotesk"],
+                        "headline-xl": ["Space Grotesk"],
+                        "headline-md": ["Space Grotesk"],
+                        "headline-lg": ["Space Grotesk"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(16, 20, 23, 0.6);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+        .glass-panel::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+            background-size: 100% 4px;
+            pointer-events: none;
+            opacity: 0.2;
+        }
+        .neon-glow {
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5), 0 0 20px rgba(0, 243, 255, 0.3);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .f1-scanline {
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.05),
+                rgba(0, 0, 0, 0.05) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopNavBar -->
+<header class="fixed top-0 left-0 w-full z-[100] bg-zinc-950/80 backdrop-blur-xl border-b border-white/10 shadow-[0_0_15px_rgba(0,243,255,0.1)]">
+<div class="flex justify-between items-center px-6 h-16 w-full max-w-screen-2xl mx-auto">
+<div class="text-xl font-black italic text-cyan-400 tracking-tighter">PIT WALL PREDICTOR</div>
+<nav class="hidden md:flex items-center space-x-8 h-full">
+<a class="font-['Space_Grotesk'] uppercase tracking-widest text-xs weight-700 text-zinc-500 hover:text-zinc-300 pb-4 transition-colors" href="#">Master Grid</a>
+<a class="font-['Space_Grotesk'] uppercase tracking-widest text-xs weight-700 text-cyan-400 border-b-2 border-cyan-400 shadow-[0_4px_10px_-2px_rgba(0,243,255,0.5)] pb-4" href="#">Head-to-Head</a>
+<a class="font-['Space_Grotesk'] uppercase tracking-widest text-xs weight-700 text-zinc-500 hover:text-zinc-300 pb-4 transition-colors" href="#">Accuracy Audit</a>
+</nav>
+<div class="flex items-center space-x-4">
+<button class="material-symbols-outlined text-on-surface-variant hover:bg-white/5 p-2 rounded-full transition-all">notifications</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:bg-white/5 p-2 rounded-full transition-all">settings</button>
+<div class="w-8 h-8 rounded-full border border-primary-container/30 overflow-hidden">
+<img alt="User Profile" data-alt="A close-up professional headshot of a data analyst in a dark tech-focused environment. The lighting is low-key with cool cyan highlights on the side of the face, mirroring a computer screen glow. The background is a soft-focus office with server racks and blue LED indicators." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBw8G4FSC45gsxx4XH9lu-KIwOtfRlwwGz7d-JOVg0YL3MiEZrEo8E7Rn5nurmAub0beZiK73KV4rPLwHN9iORkjcPW1bkhN7hiDX2yLwkj7Q9gmFP8dm_1YOm1qmidO877UeIfdarXqIh3lfGKsaNllSJzUO8X3CJho-uP3fc9OaCOgML5eDWPBZiLmM8ngxgu0uQCEuxohS_RP8L3OF_DQuy17yu1vuBaQdE_Nn8fNHCpaa7LlhUof0EVdZL5MAkjjArT6vcbEWYi"/>
+</div>
+</div>
+</div>
+</header>
+<main class="pt-24 pb-32 px-6 max-w-screen-2xl mx-auto">
+<!-- Dashboard Header -->
+<div class="mb-12 flex justify-between items-end">
+<div>
+<div class="flex items-center space-x-2 mb-2">
+<span class="w-2 h-2 bg-primary-container rounded-full animate-pulse"></span>
+<span class="font-label-caps text-label-caps text-primary-container">LIVE TELEMETRY FEED</span>
+</div>
+<h1 class="font-headline-xl text-headline-xl text-on-surface tracking-tight">Race Predictor <span class="text-primary-container/50 font-light underline decoration-primary-container/20">H2H</span></h1>
+</div>
+<div class="glass-panel px-4 py-2 flex items-center space-x-4 border-primary-container/20">
+<div class="text-right">
+<div class="font-label-caps text-[10px] text-on-surface-variant uppercase">Next Event</div>
+<div class="font-mono-data text-mono-data">BRITISH GRAND PRIX</div>
+</div>
+<div class="w-[1px] h-8 bg-outline-variant"></div>
+<div class="text-right">
+<div class="font-label-caps text-[10px] text-on-surface-variant uppercase">Lap Count</div>
+<div class="font-mono-data text-mono-data">52/52</div>
+</div>
+</div>
+</div>
+<!-- Head-to-Head Comparison -->
+<div class="relative grid grid-cols-1 lg:grid-cols-11 gap-4 items-center">
+<!-- Driver 1: Lewis Hamilton -->
+<div class="lg:col-span-5 group">
+<div class="glass-panel p-6 rounded-xl border-l-4 border-l-primary-container transition-all duration-500 hover:bg-white/5">
+<div class="flex justify-between items-start mb-6">
+<div class="relative w-32 h-32 rounded-lg overflow-hidden border border-white/10 grayscale group-hover:grayscale-0 transition-all">
+<img class="object-cover w-full h-full" data-alt="A dramatic, high-contrast portrait of a world-class Formula 1 driver wearing a professional racing suit. The scene is set in a dimly lit garage with moody cyan and deep charcoal tones. Luminous telemetry data screens are reflected in the driver's helmet visor nearby. The aesthetic is sharp, focused, and high-tech." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzOzN6IvHVQbRMnqMy_PhJGpwnXnuy1DNVhUu5iW4BP6BBteXPLp66-DZRleuu_iMf56EhRxXD_7Lj4NAided624nhtKjmbfwa4mVBvkBQhEhTbpiEoByJ005HPLGfUFq3p1YE_M86jLafEZOs5OnhAFYgpkbPXfWI8exdnJXZf7hkxK8oSbSAneolX3GxBvtVPzam8o8vli57ZP4ufdzN9irJitZ_tTLyF_co7Wh_SkegXUQRSVSwmzHOL3Udy48lJkzLkIyDeB7n"/>
+<div class="absolute bottom-0 left-0 bg-primary-container text-on-primary-container font-mono-data px-2 py-1 text-xs">#44</div>
+</div>
+<div class="text-right">
+<h2 class="font-headline-lg text-headline-lg uppercase italic tracking-tighter">Hamilton</h2>
+<p class="font-label-caps text-on-surface-variant text-sm">Mercedes-AMG PETRONAS</p>
+<div class="mt-4 flex flex-col items-end">
+<span class="font-label-caps text-xs text-primary-container/70 mb-1">PREDICTED POSITION</span>
+<span class="font-headline-xl text-headline-xl neon-glow text-primary-container">P1</span>
+</div>
+</div>
+</div>
+<!-- Telemetry Chart -->
+<div class="space-y-2">
+<div class="flex justify-between items-end font-label-caps text-[10px] text-on-surface-variant mb-2">
+<span>BASE PACE (AVG)</span>
+<span class="text-primary-container">1:27.442</span>
+</div>
+<div class="h-24 w-full relative">
+<!-- Custom SVG Chart Simulation -->
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 400 100">
+<defs>
+<lineargradient id="grad1" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" style="stop-color:rgba(0, 243, 255, 0.4);stop-opacity:1"></stop>
+<stop offset="100%" style="stop-color:rgba(0, 243, 255, 0);stop-opacity:1"></stop>
+</lineargradient>
+</defs>
+<path d="M0,80 Q50,70 100,50 T200,60 T300,40 T400,20 L400,100 L0,100 Z" fill="url(#grad1)"></path>
+<path d="M0,80 Q50,70 100,50 T200,60 T300,40 T400,20" fill="none" stroke="#00f3ff" stroke-width="2"></path>
+</svg>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-4 mt-6">
+<div class="surface-container-high p-3 rounded border border-white/5">
+<div class="font-label-caps text-[10px] text-on-surface-variant">SECTOR 1</div>
+<div class="font-mono-data text-primary">28.1s</div>
+</div>
+<div class="surface-container-high p-3 rounded border border-white/5">
+<div class="font-label-caps text-[10px] text-on-surface-variant">SECTOR 2</div>
+<div class="font-mono-data text-primary">35.4s</div>
+</div>
+<div class="surface-container-high p-3 rounded border border-white/5">
+<div class="font-label-caps text-[10px] text-on-surface-variant">SECTOR 3</div>
+<div class="font-mono-data text-primary">23.9s</div>
+</div>
+</div>
+</div>
+</div>
+<!-- VS Centerpiece -->
+<div class="lg:col-span-1 flex flex-col items-center justify-center z-10 py-8 lg:py-0">
+<div class="relative w-20 h-20 flex items-center justify-center">
+<div class="absolute inset-0 bg-primary-container/20 rounded-full blur-2xl animate-pulse"></div>
+<div class="relative glass-panel w-16 h-16 rounded-full flex items-center justify-center border-primary-container/40">
+<span class="font-headline-md text-headline-md italic text-primary-container italic font-black">VS</span>
+</div>
+</div>
+<div class="mt-8 flex flex-col items-center space-y-2">
+<img alt="Mercedes Logo" class="w-12 opacity-50 contrast-125" data-alt="The elegant, silver three-pointed star logo of Mercedes-Benz rendered in a high-tech chrome finish. The logo is set against a dark carbon-fiber textured background with subtle cyan backlighting. The aesthetic is clean, luxurious, and precision-engineered for a professional sports environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDuxVuMbtI_aHePzkp8h10ogxqc6hpmiZ51wVAm35j3QlRNB4_gf_cfkizuSdHRlX6i7_0w_f8OVxTTiBUdmV5OzNeZIi1yRjvr4ALqcmvdXrJk9Xe8cM7knGht3xXB_m03HeCv4TZdlUUm3dcnxALBOOk4Cn0bL5UjuBXFPJ0Zj3E9caAUICcdybx-kTPibX0UOiK359oVbYKxNtCikNCnjW-_y8SHsRb_Rrq7x1YVVYr2aG1SkzPm7J63RyCUCmfy_xzorFSY4FUa"/>
+<div class="w-px h-24 bg-gradient-to-b from-primary-container/50 to-transparent"></div>
+</div>
+</div>
+<!-- Driver 2: George Russell -->
+<div class="lg:col-span-5 group">
+<div class="glass-panel p-6 rounded-xl border-r-4 border-r-secondary-container transition-all duration-500 hover:bg-white/5">
+<div class="flex justify-between items-start mb-6">
+<div class="order-2 relative w-32 h-32 rounded-lg overflow-hidden border border-white/10 grayscale group-hover:grayscale-0 transition-all">
+<img class="object-cover w-full h-full" data-alt="A cinematic portrait of a young professional racing driver in a white and teal team suit. The lighting highlights sharp contours and deep shadows, emphasizing focus and determination. The background is a soft-blurred pit lane at night with vibrant neon streaks of blue and red lights. Professional photography style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjakTplFZA8JKl5-384Xlnk_ctO5TJXLYepIeoI9uy-1ahO7MghDxXitOjwu6HB4NQRTFP7i46MPyM3Px6Y6qA2z4NW1Mhf_xWup-AgcOIkNZDc2faj7D24N7Po33fSxOPVLZjqRps9VYPIPRctFT51fwlK0W9-dOQH0U1Y51hhRHa3XJt9XWM_qHrUX2Wy1QcPs_cVVYs93Q56Kiw_kbmCjULxbutl-UgkXH4Ai94K8DNM2ah11sc1AwkRyYzB9fBOrVSB8v2V9x4"/>
+<div class="absolute bottom-0 right-0 bg-secondary-container text-white font-mono-data px-2 py-1 text-xs">#63</div>
+</div>
+<div class="order-1 text-left">
+<h2 class="font-headline-lg text-headline-lg uppercase italic tracking-tighter">Russell</h2>
+<p class="font-label-caps text-on-surface-variant text-sm">Mercedes-AMG PETRONAS</p>
+<div class="mt-4 flex flex-col items-start">
+<span class="font-label-caps text-xs text-secondary/70 mb-1">PREDICTED POSITION</span>
+<span class="font-headline-xl text-headline-xl text-secondary shadow-[0_0_15px_rgba(234,0,17,0.3)]">P3</span>
+</div>
+</div>
+</div>
+<!-- Telemetry Chart -->
+<div class="space-y-2">
+<div class="flex justify-between items-end font-label-caps text-[10px] text-on-surface-variant mb-2">
+<span class="text-secondary">1:27.591</span>
+<span>BASE PACE (AVG)</span>
+</div>
+<div class="h-24 w-full relative scale-x-[-1]">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 400 100">
+<defs>
+<lineargradient id="grad2" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" style="stop-color:rgba(234, 0, 17, 0.4);stop-opacity:1"></stop>
+<stop offset="100%" style="stop-color:rgba(234, 0, 17, 0);stop-opacity:1"></stop>
+</lineargradient>
+</defs>
+<path d="M0,70 Q50,80 100,60 T200,75 T300,55 T400,35 L400,100 L0,100 Z" fill="url(#grad2)"></path>
+<path d="M0,70 Q50,80 100,60 T200,75 T300,55 T400,35" fill="none" stroke="#ea0011" stroke-width="2"></path>
+</svg>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-4 mt-6">
+<div class="surface-container-high p-3 rounded border border-white/5">
+<div class="font-label-caps text-[10px] text-on-surface-variant">SECTOR 1</div>
+<div class="font-mono-data text-primary">28.3s</div>
+</div>
+<div class="surface-container-high p-3 rounded border border-white/5">
+<div class="font-label-caps text-[10px] text-on-surface-variant">SECTOR 2</div>
+<div class="font-mono-data text-primary">35.6s</div>
+</div>
+<div class="surface-container-high p-3 rounded border border-white/5">
+<div class="font-label-caps text-[10px] text-on-surface-variant">SECTOR 3</div>
+<div class="font-mono-data text-primary">23.7s</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Predictor Stats Bento Grid -->
+<div class="mt-12 grid grid-cols-1 md:grid-cols-4 gap-6">
+<!-- Confidence Metric -->
+<div class="glass-panel p-6 rounded-xl flex flex-col justify-between">
+<div>
+<h3 class="font-label-caps text-xs text-on-surface-variant mb-4">ALGO CONFIDENCE</h3>
+<div class="text-4xl font-headline-md text-primary-container">94.2%</div>
+</div>
+<div class="mt-4 h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary-container w-[94%] shadow-[0_0_8px_rgba(0,243,255,0.8)]"></div>
+</div>
+</div>
+<!-- Weather Impact -->
+<div class="glass-panel p-6 rounded-xl">
+<h3 class="font-label-caps text-xs text-on-surface-variant mb-4">WEATHER IMPACT</h3>
+<div class="flex items-center space-x-4">
+<span class="material-symbols-outlined text-4xl text-yellow-500" style="font-variation-settings: 'FILL' 1;">light_mode</span>
+<div>
+<div class="font-mono-data text-lg text-on-surface">DRY</div>
+<div class="text-[10px] font-label-caps text-on-surface-variant">TRACK TEMP: 42°C</div>
+</div>
+</div>
+</div>
+<!-- Strategy Selection -->
+<div class="glass-panel p-6 rounded-xl md:col-span-2 relative">
+<div class="absolute top-4 right-4 flex space-x-1">
+<div class="w-3 h-3 rounded-sm bg-purple-600"></div>
+<div class="w-3 h-3 rounded-sm bg-green-500"></div>
+<div class="w-3 h-3 rounded-sm bg-yellow-400"></div>
+</div>
+<h3 class="font-label-caps text-xs text-on-surface-variant mb-4">STRATEGY PREDICTION</h3>
+<div class="flex items-center space-x-8">
+<div class="flex flex-col items-center">
+<div class="w-12 h-12 rounded-full border-4 border-yellow-500 flex items-center justify-center font-bold text-xs">M</div>
+<div class="mt-2 font-mono-data text-xs text-on-surface-variant">LAP 1-22</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">arrow_forward</span>
+<div class="flex flex-col items-center">
+<div class="w-12 h-12 rounded-full border-4 border-white flex items-center justify-center font-bold text-xs">H</div>
+<div class="mt-2 font-mono-data text-xs text-on-surface-variant">LAP 22-52</div>
+</div>
+<div class="ml-auto text-right">
+<div class="text-[10px] font-label-caps text-primary-container">OPTIMAL PATH</div>
+<div class="font-mono-data text-lg">1-STOP</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 bg-zinc-950/90 backdrop-blur-2xl border-t border-cyan-500/20 shadow-[0_-4px_20px_rgba(0,0,0,0.5)] flex justify-around items-center h-20 px-4 pb-safe">
+<div class="flex flex-col items-center justify-center text-zinc-600">
+<span class="material-symbols-outlined" data-icon="query_stats">query_stats</span>
+<span class="font-['Space_Grotesk'] text-[10px] font-bold uppercase">Telemetry</span>
+</div>
+<div class="flex flex-col items-center justify-center text-cyan-400 drop-shadow-[0_0_8px_rgba(0,243,255,0.6)] scale-110 duration-200">
+<span class="material-symbols-outlined" data-icon="Insights">insights</span>
+<span class="font-['Space_Grotesk'] text-[10px] font-bold uppercase">Predictor</span>
+</div>
+<div class="flex flex-col items-center justify-center text-zinc-600">
+<span class="material-symbols-outlined" data-icon="paddock">padding</span>
+<span class="font-['Space_Grotesk'] text-[10px] font-bold uppercase">Live</span>
+</div>
+<div class="flex flex-col items-center justify-center text-zinc-600">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+<span class="font-['Space_Grotesk'] text-[10px] font-bold uppercase">Archive</span>
+</div>
+</nav>
+</body></html>

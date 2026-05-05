@@ -1,217 +1,324 @@
-"use client";
+'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 
-const TEAM_COLORS: Record<string, string> = {
-  "VER": "#3671C6", "PER": "#3671C6",
-  "LEC": "#E8002D", "SAI": "#E8002D",
-  "NOR": "#FF8000", "PIA": "#FF8000",
-  "HAM": "#6CD3BF", "RUS": "#6CD3BF",
-  "ALO": "#229971", "STR": "#229971",
-  "GAS": "#0093CC", "OCO": "#0093CC",
-  "ALB": "#37BEDD", "COL": "#37BEDD",
-  "TSU": "#6692FF", "LAW": "#6692FF",
-  "BOT": "#52E252", "ZHO": "#52E252",
-  "HUL": "#B6BABD", "MAG": "#B6BABD"
+const DRIVER_DETAILS: Record<string, { name: string, team: string }> = {
+  "VER": { name: "Max Verstappen", team: "Red Bull Racing" },
+  "PER": { name: "Sergio Perez", team: "Red Bull Racing" },
+  "LEC": { name: "Charles Leclerc", team: "Scuderia Ferrari" },
+  "SAI": { name: "Carlos Sainz", team: "Scuderia Ferrari" },
+  "NOR": { name: "Lando Norris", team: "McLaren" },
+  "PIA": { name: "Oscar Piastri", team: "McLaren" },
+  "HAM": { name: "Lewis Hamilton", team: "Mercedes-AMG" },
+  "RUS": { name: "George Russell", team: "Mercedes-AMG" },
+  "ALO": { name: "Fernando Alonso", team: "Aston Martin" },
+  "STR": { name: "Lance Stroll", team: "Aston Martin" },
+  "GAS": { name: "Pierre Gasly", team: "Alpine" },
+  "OCO": { name: "Esteban Ocon", team: "Alpine" },
+  "ALB": { name: "Alexander Albon", team: "Williams" },
+  "COL": { name: "Franco Colapinto", team: "Williams" },
+  "SAR": { name: "Logan Sargeant", team: "Williams" },
+  "TSU": { name: "Yuki Tsunoda", team: "RB" },
+  "LAW": { name: "Liam Lawson", team: "RB" },
+  "RIC": { name: "Daniel Ricciardo", team: "RB" },
+  "BOT": { name: "Valtteri Bottas", team: "Kick Sauber" },
+  "ZHO": { name: "Guanyu Zhou", team: "Kick Sauber" },
+  "HUL": { name: "Nico Hulkenberg", team: "Haas" },
+  "MAG": { name: "Kevin Magnussen", team: "Haas" },
+  "BEA": { name: "Oliver Bearman", team: "Haas" },
+  "HAD": { name: "Isack Hadjar", team: "RB" },
+  "ANT": { name: "Kimi Antonelli", team: "Mercedes-AMG" }
 };
 
-const STORAGE_URL = "https://pfbhpvddzodwtlykbvma.supabase.co/storage/v1/object/public/f1_assets/";
+const TEAM_COLORS: Record<string, string> = {
+  "Red Bull Racing": "#3671C6",
+  "Scuderia Ferrari": "#E8002D",
+  "McLaren": "#FF8000",
+  "Mercedes-AMG": "#27F4D2",
+  "Aston Martin": "#229971",
+  "Alpine": "#0093CC",
+  "Williams": "#64C4FF",
+  "RB": "#6692FF",
+  "Haas": "#B6BABD",
+  "Kick Sauber": "#52E252",
+  "Unknown": "#ffffff"
+};
+
+const TEAM_ACRONYMS: Record<string, string> = {
+  "Red Bull Racing": "RBR",
+  "Scuderia Ferrari": "FER",
+  "McLaren": "MCL",
+  "Mercedes-AMG": "AMG",
+  "Aston Martin": "AMR",
+  "Alpine": "ALP",
+  "Williams": "WIL",
+  "RB": "RBU",
+  "Haas": "HAA",
+  "Kick Sauber": "SAU",
+  "Unknown": "UNK"
+};
 
 export default function DashboardTabs({ predictions }: { predictions: any[] }) {
-  const [activeTab, setActiveTab] = useState('grid');
-  
-  // Group drivers by team for H2H
-  const teams: Record<string, any[]> = {};
-  predictions.forEach(p => {
-    const teamName = p.team || "Unknown";
-    if (!teams[teamName]) teams[teamName] = [];
-    teams[teamName].push(p);
-  });
+  const [activeTab, setActiveTab] = useState<'grid' | 'h2h' | 'audit'>('grid');
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const STORAGE_URL = supabaseUrl + "/storage/v1/object/public/f1_assets/";
 
   return (
     <div className="w-full">
-      {/* Navigation Tabs */}
-      <div className="flex border-b border-white/10 mb-8">
+      {/* Tab Navigation */}
+      <nav className="flex items-center gap-6 mb-8 border-b border-white/10 pb-4 overflow-x-auto whitespace-nowrap">
         <button 
           onClick={() => setActiveTab('grid')}
-          className={`py-3 px-6 font-mono text-sm tracking-widest uppercase transition-all duration-300 relative ${activeTab === 'grid' ? 'text-[#00F3FF]' : 'text-zinc-500 hover:text-zinc-300'}`}
+          className={`font-mono text-xs font-bold tracking-widest uppercase transition-all pb-4 -mb-[17px] ${activeTab === 'grid' ? 'text-[#00F3FF] border-b-2 border-[#00F3FF] shadow-[0_4px_10px_-2px_rgba(0,243,255,0.5)]' : 'text-zinc-500 hover:text-zinc-300'}`}
         >
-          Master Grid Power Ranking
-          {activeTab === 'grid' && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#00F3FF] shadow-[0_0_10px_rgba(0,243,255,0.8)]"></div>
-          )}
+          Master Grid
         </button>
         <button 
           onClick={() => setActiveTab('h2h')}
-          className={`py-3 px-6 font-mono text-sm tracking-widest uppercase transition-all duration-300 relative ${activeTab === 'h2h' ? 'text-[#00F3FF]' : 'text-zinc-500 hover:text-zinc-300'}`}
+          className={`font-mono text-xs font-bold tracking-widest uppercase transition-all pb-4 -mb-[17px] ${activeTab === 'h2h' ? 'text-[#00F3FF] border-b-2 border-[#00F3FF] shadow-[0_4px_10px_-2px_rgba(0,243,255,0.5)]' : 'text-zinc-500 hover:text-zinc-300'}`}
         >
-          Head-to-Head Race Predictor
-          {activeTab === 'h2h' && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#00F3FF] shadow-[0_0_10px_rgba(0,243,255,0.8)]"></div>
-          )}
+          Head-to-Head
         </button>
-      </div>
+        <button 
+          onClick={() => setActiveTab('audit')}
+          className={`font-mono text-xs font-bold tracking-widest uppercase transition-all pb-4 -mb-[17px] ${activeTab === 'audit' ? 'text-[#00F3FF] border-b-2 border-[#00F3FF] shadow-[0_4px_10px_-2px_rgba(0,243,255,0.5)]' : 'text-zinc-500 hover:text-zinc-300'}`}
+        >
+          Accuracy Audit
+        </button>
+      </nav>
 
+      {/* Grid Tab */}
       {activeTab === 'grid' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {predictions.map((p, index) => {
-            const color = TEAM_COLORS[p.code] || "#ffffff";
-            const teamName = p.team || "Unknown";
-            const driverName = p.driver_name || p.code || "Unknown";
-            // Fallback strategy for images
-            const logoUrl = STORAGE_URL + "logos/" + teamName.replace(/\s+/g, '_') + ".png";
+            const details = DRIVER_DETAILS[p.code] || { name: p.code, team: "Unknown" };
+            const teamColor = TEAM_COLORS[details.team] || "#00f3ff";
+            const teamAcronym = TEAM_ACRONYMS[details.team] || "UNK";
             const photoUrl = STORAGE_URL + "drivers/" + p.code + ".png";
             
             return (
-              <div 
-                key={p.code}
-                className="relative rounded-xl overflow-hidden bg-[#181c20]/80 backdrop-blur-xl border border-white/5 group hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(0,243,255,0.15)] hover:border-[#00f3ff]/30 transition-all duration-300 min-h-[220px] flex"
-              >
-                {/* Left Accent Bar */}
-                <div className="absolute left-0 top-0 bottom-0 w-1 z-10" style={{ backgroundColor: color }}></div>
+              <div key={p.code} className="bg-zinc-900/60 backdrop-blur-md border border-white/5 hover:border-white/20 transition-all rounded-lg overflow-hidden flex flex-col relative group">
+                <div className="absolute top-0 right-0 p-4 z-10">
+                  <span className="font-mono text-5xl italic font-black text-white/5 group-hover:text-white/20 transition-colors duration-500 drop-shadow-[0_0_10px_rgba(0,243,255,0.2)]">
+                    {(index + 1).toString().padStart(2, '0')}
+                  </span>
+                </div>
                 
-                {/* Driver Section */}
-                <div className="flex-1 p-5 relative z-10 flex flex-col justify-between overflow-hidden w-2/3">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="text-xl font-black text-[#00f3ff] bg-[#00f3ff]/10 px-2 py-0.5 rounded border border-[#00f3ff]/30 shadow-[0_0_10px_rgba(0,243,255,0.2)]">
-                      P{index + 1}
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-bold uppercase leading-none tracking-tight text-[#e0e2e8]">
-                        {driverName} <span className="text-xs text-zinc-500 font-mono ml-1">{p.code}</span>
-                      </h2>
-                      <p className="text-[10px] text-zinc-400 uppercase tracking-widest mt-1">{teamName}</p>
-                    </div>
+                {/* Driver Image Section */}
+                <div className="relative h-64 w-full bg-zinc-950 overflow-hidden">
+                  {/* Default Silhouette fallback, layered behind */}
+                  <div className="absolute inset-0 flex items-end justify-center opacity-30 group-hover:opacity-10 transition-opacity">
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full text-zinc-700 translate-y-8 scale-150">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm0 14c-2.03 0-4.43-.82-6.14-2.88a9.947 9.947 0 0112.28 0C16.43 19.18 14.03 20 12 20z" />
+                    </svg>
                   </div>
                   
-                  {/* Telemetry Section */}
-                  <div className="bg-black/40 rounded-lg p-3 border border-white/5 w-full">
-                    <p className="text-[10px] text-[#00f3ff] uppercase tracking-widest mb-2 font-mono font-bold">Market Probabilities</p>
-                    <div className="space-y-1.5 text-xs w-full">
-                      <div className="flex justify-between items-center border-b border-white/5 pb-1">
-                        <span className="font-semibold text-zinc-300 uppercase">Win (P1)</span>
-                        <span className="font-mono font-bold text-white">{p.prob_win}</span>
+                  <Image 
+                    src={photoUrl} 
+                    alt={details.name}
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-cover object-top grayscale group-hover:grayscale-0 transition-all duration-700 scale-105 group-hover:scale-100 z-10"
+                    unoptimized
+                    onError={(e) => {
+                      // Hide image if it fails to load
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#121619] via-transparent to-transparent z-20"></div>
+                </div>
+
+                {/* Details Section */}
+                <div className="p-6 -mt-12 relative z-30">
+                  <div className="flex justify-between items-end mb-4">
+                    <div>
+                      <span className="font-mono text-[10px] text-zinc-400 uppercase tracking-[0.2em]" style={{ color: teamColor }}>{details.team}</span>
+                      <h2 className="text-xl font-bold uppercase italic text-white tracking-tight">{details.name}</h2>
+                    </div>
+                    <div className="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center font-black italic text-[10px] border border-white/10 text-zinc-300" style={{ borderColor: teamColor + '40', boxShadow: `0 0 10px ${teamColor}20` }}>
+                      {teamAcronym}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 pt-4 border-t border-white/5">
+                    <div className="flex justify-between items-center">
+                      <span className="font-mono text-[10px] text-zinc-400 uppercase">Win Probability</span>
+                      <div className="flex items-center gap-3 flex-1 ml-4">
+                        <div className="h-1 bg-white/5 flex-1 overflow-hidden rounded-full">
+                          <div className="h-full" style={{ width: p.prob_win, backgroundColor: teamColor, boxShadow: `0 0 8px ${teamColor}` }}></div>
+                        </div>
+                        <span className="font-mono text-sm font-bold w-12 text-right">{p.prob_win}</span>
                       </div>
-                      <div className="flex justify-between items-center border-b border-white/5 pb-1">
-                        <span className="font-semibold text-zinc-300 uppercase">Podium (Top 3)</span>
-                        <span className="font-mono font-bold text-white">{p.prob_podium}</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="font-mono text-[10px] text-zinc-400 uppercase">Podium Chance</span>
+                      <div className="flex items-center gap-3 flex-1 ml-4">
+                        <div className="h-1 bg-white/5 flex-1 overflow-hidden rounded-full">
+                          <div className="h-full bg-zinc-300" style={{ width: p.prob_podium }}></div>
+                        </div>
+                        <span className="font-mono text-sm font-bold w-12 text-right">{p.prob_podium}</span>
                       </div>
-                      <div className="flex justify-between items-center border-b border-white/5 pb-1">
-                        <span className="font-semibold text-zinc-300 uppercase">Top 6 Finish</span>
-                        <span className="font-mono font-bold text-white">{p.prob_top6}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="font-semibold text-zinc-300 uppercase">Points (Top 10)</span>
-                        <span className="font-mono font-bold text-white">{p.prob_top10}</span>
-                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center bg-white/5 p-3 rounded-md">
+                      <span className="font-mono text-[10px] text-zinc-400 uppercase">Base Pace Avg.</span>
+                      <span className="font-mono text-sm font-bold" style={{ color: teamColor }}>
+                        {p.ai_base_pace ? parseFloat(p.ai_base_pace).toFixed(3) : "1:31.000"}
+                      </span>
                     </div>
                   </div>
                 </div>
-
-                {/* Driver Photo & Logo Background */}
-                <div className="w-1/3 relative flex items-end justify-end p-2 z-0">
-                    <img 
-                      src={logoUrl} 
-                      alt={teamName} 
-                      className="absolute inset-0 m-auto opacity-10 object-contain w-32 h-32 blur-[2px]" 
-                      onError={(e) => { e.currentTarget.style.display = 'none'; }} 
-                    />
-                    <img 
-                      src={photoUrl} 
-                      alt={p.code} 
-                      className="relative z-10 object-contain h-[160px] max-w-none transform translate-x-2 translate-y-4 drop-shadow-2xl opacity-90 group-hover:scale-105 transition-transform duration-500" 
-                      onError={(e) => { 
-                        // Fallback generic helmet icon if image fails to load
-                        e.currentTarget.src = "https://upload.wikimedia.org/wikipedia/commons/4/4e/Racing_Helmet_icon.svg"; 
-                        e.currentTarget.className = "relative z-10 object-contain h-[120px] opacity-20 transform translate-x-0 translate-y-2";
-                      }} 
-                    />
-                </div>
               </div>
-            );
+            )
           })}
         </div>
       )}
 
+      {/* Head to Head Tab */}
       {activeTab === 'h2h' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {Object.entries(teams).map(([teamName, drivers]) => {
-            if (drivers.length < 2) return null; // Need 2 drivers for H2H
-            
-            // Determine winner based on predicted position
-            const d1 = drivers[0];
-            const d2 = drivers[1];
-            const d1Wins = d1.ai_predicted_pos < d2.ai_predicted_pos;
-            const color = TEAM_COLORS[d1.code] || "#ffffff";
-            const logoUrl = STORAGE_URL + "logos/" + teamName.replace(/\s+/g, '_') + ".png";
+        <div className="space-y-12">
+          {(() => {
+            // Group predictions by team
+            const teams: Record<string, any[]> = {};
+            predictions.forEach(p => {
+              const details = DRIVER_DETAILS[p.code] || { name: p.code, team: "Unknown" };
+              if (!teams[details.team]) teams[details.team] = [];
+              teams[details.team].push({ ...p, details });
+            });
 
-            return (
-              <div key={teamName} className="relative w-full rounded-2xl bg-[#181c20]/80 backdrop-blur-xl border border-white/5 overflow-hidden shadow-2xl flex flex-col p-1">
-                {/* Team Header */}
-                <div className="w-full text-center py-2 relative z-10 flex flex-col items-center border-b border-white/5 mb-2">
-                  <h3 className="font-mono text-sm tracking-[0.2em] uppercase text-zinc-400">{teamName}</h3>
+            return Object.entries(teams).map(([teamName, drivers], index) => {
+              if (drivers.length < 2) return null; // Need 2 drivers for H2H
+              
+              const d1 = drivers[0];
+              const d2 = drivers[1];
+              const d1Color = TEAM_COLORS[teamName] || "#00f3ff";
+              const d2Color = "#ea0011"; // Accent color for second driver
+              
+              return (
+                <div key={teamName} className="relative grid grid-cols-1 lg:grid-cols-11 gap-4 items-center">
+                  
+                  {/* Driver 1 */}
+                  <div className="lg:col-span-5 group">
+                    <div className="bg-zinc-900/40 backdrop-blur-md p-6 rounded-xl border-l-4 transition-all duration-500 hover:bg-white/5 border-t border-r border-b border-white/5" style={{ borderLeftColor: d1Color }}>
+                      <div className="flex justify-between items-start mb-6">
+                        <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-white/10 grayscale group-hover:grayscale-0 transition-all bg-zinc-950">
+                           <div className="absolute inset-0 flex items-end justify-center opacity-30 group-hover:opacity-10 transition-opacity">
+                            <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full text-zinc-700 translate-y-4 scale-125">
+                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm0 14c-2.03 0-4.43-.82-6.14-2.88a9.947 9.947 0 0112.28 0C16.43 19.18 14.03 20 12 20z" />
+                            </svg>
+                          </div>
+                          <Image 
+                            src={STORAGE_URL + "drivers/" + d1.code + ".png"}
+                            alt={d1.details.name}
+                            fill
+                            className="object-cover object-top z-10"
+                            unoptimized
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
+                          <div className="absolute bottom-0 left-0 text-white font-mono px-2 py-1 text-xs z-20" style={{ backgroundColor: d1Color }}>
+                            {d1.code}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <h2 className="text-3xl font-bold uppercase italic tracking-tighter text-white">{d1.details.name.split(' ').pop()}</h2>
+                          <p className="font-mono text-[10px] text-zinc-400 uppercase tracking-widest">{teamName}</p>
+                          <div className="mt-4 flex flex-col items-end">
+                            <span className="font-mono text-[10px] text-zinc-500 mb-1">PREDICTED POS</span>
+                            <span className="text-4xl font-black" style={{ color: d1Color, textShadow: `0 0 15px ${d1Color}80` }}>P{Math.round(d1.ai_predicted_pos)}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-end font-mono text-[10px] text-zinc-400 mb-2">
+                          <span>BASE PACE</span>
+                          <span style={{ color: d1Color }}>{d1.ai_base_pace ? parseFloat(d1.ai_base_pace).toFixed(3) : "1:31.000"}</span>
+                        </div>
+                        <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                           <div className="h-full" style={{ width: '85%', backgroundColor: d1Color }}></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* VS Centerpiece */}
+                  <div className="lg:col-span-1 flex flex-col items-center justify-center z-10 py-8 lg:py-0">
+                    <div className="relative w-20 h-20 flex items-center justify-center">
+                      <div className="absolute inset-0 bg-[#00f3ff]/20 rounded-full blur-2xl animate-pulse"></div>
+                      <div className="relative w-16 h-16 rounded-full flex items-center justify-center border border-[#00f3ff]/40 bg-zinc-900/80 backdrop-blur-md">
+                        <span className="text-xl italic text-[#00f3ff] font-black">VS</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Driver 2 */}
+                  <div className="lg:col-span-5 group">
+                     <div className="bg-zinc-900/40 backdrop-blur-md p-6 rounded-xl border-r-4 transition-all duration-500 hover:bg-white/5 border-t border-l border-b border-white/5" style={{ borderRightColor: d2Color }}>
+                      <div className="flex justify-between items-start mb-6">
+                        <div className="order-2 relative w-32 h-32 rounded-lg overflow-hidden border border-white/10 grayscale group-hover:grayscale-0 transition-all bg-zinc-950">
+                           <div className="absolute inset-0 flex items-end justify-center opacity-30 group-hover:opacity-10 transition-opacity">
+                            <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full text-zinc-700 translate-y-4 scale-125">
+                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm0 14c-2.03 0-4.43-.82-6.14-2.88a9.947 9.947 0 0112.28 0C16.43 19.18 14.03 20 12 20z" />
+                            </svg>
+                          </div>
+                          <Image 
+                            src={STORAGE_URL + "drivers/" + d2.code + ".png"}
+                            alt={d2.details.name}
+                            fill
+                            className="object-cover object-top z-10"
+                            unoptimized
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
+                          <div className="absolute bottom-0 right-0 text-white font-mono px-2 py-1 text-xs z-20" style={{ backgroundColor: d2Color }}>
+                            {d2.code}
+                          </div>
+                        </div>
+                        <div className="order-1 text-left">
+                          <h2 className="text-3xl font-bold uppercase italic tracking-tighter text-white">{d2.details.name.split(' ').pop()}</h2>
+                          <p className="font-mono text-[10px] text-zinc-400 uppercase tracking-widest">{teamName}</p>
+                          <div className="mt-4 flex flex-col items-start">
+                            <span className="font-mono text-[10px] text-zinc-500 mb-1">PREDICTED POS</span>
+                            <span className="text-4xl font-black" style={{ color: d2Color, textShadow: `0 0 15px ${d2Color}80` }}>P{Math.round(d2.ai_predicted_pos)}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-end font-mono text-[10px] text-zinc-400 mb-2">
+                           <span style={{ color: d2Color }}>{d2.ai_base_pace ? parseFloat(d2.ai_base_pace).toFixed(3) : "1:31.250"}</span>
+                          <span>BASE PACE</span>
+                        </div>
+                        <div className="h-1 bg-white/5 rounded-full overflow-hidden flex justify-end">
+                           <div className="h-full" style={{ width: '80%', backgroundColor: d2Color }}></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-
-                <div className="flex w-full relative h-full">
-                  {/* Left Driver */}
-                  <div className={`flex-1 relative p-4 flex flex-col items-center border-r border-white/5 transition-all duration-300 ${d1Wins ? 'bg-gradient-to-b from-[#00f3ff]/5 to-transparent' : 'opacity-60 grayscale-[50%]'}`}>
-                    {d1Wins && <div className="absolute top-2 right-2 text-xs font-bold bg-[#00f3ff] text-black px-2 py-0.5 rounded shadow-[0_0_10px_rgba(0,243,255,0.5)]">WINNER</div>}
-                    <div className="w-24 h-24 relative mb-4 rounded-full overflow-hidden bg-white/5 border-2 border-white/10 flex items-center justify-center">
-                        <img 
-                          src={STORAGE_URL + "drivers/" + d1.code + ".png"} 
-                          alt={d1.code} 
-                          className="object-cover h-full"
-                          onError={(e) => { 
-                            e.currentTarget.src = "https://upload.wikimedia.org/wikipedia/commons/4/4e/Racing_Helmet_icon.svg"; 
-                            e.currentTarget.className = "object-contain h-12 opacity-30";
-                          }} 
-                        />
-                    </div>
-                    <h4 className="text-xl font-bold uppercase text-white mb-1">{d1.driver_name || d1.code}</h4>
-                    <span className="text-sm font-mono text-zinc-500 mb-4">{d1.code}</span>
-                    
-                    <div className="w-full bg-black/40 rounded p-3 text-center border border-white/5">
-                      <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">Predicted Pos</p>
-                      <p className="text-3xl font-black text-white">P{Math.round(d1.ai_predicted_pos)}</p>
-                    </div>
-                  </div>
-
-                  {/* VS Divider / Logo */}
-                  <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 flex flex-col items-center justify-center bg-[#101417] p-2 rounded-full border border-white/10 shadow-2xl">
-                     <span className="font-mono font-bold text-[#00f3ff] text-xs">VS</span>
-                  </div>
-
-                  {/* Right Driver */}
-                  <div className={`flex-1 relative p-4 flex flex-col items-center transition-all duration-300 ${!d1Wins ? 'bg-gradient-to-b from-[#00f3ff]/5 to-transparent' : 'opacity-60 grayscale-[50%]'}`}>
-                    {!d1Wins && <div className="absolute top-2 left-2 text-xs font-bold bg-[#00f3ff] text-black px-2 py-0.5 rounded shadow-[0_0_10px_rgba(0,243,255,0.5)]">WINNER</div>}
-                    <div className="w-24 h-24 relative mb-4 rounded-full overflow-hidden bg-white/5 border-2 border-white/10 flex items-center justify-center">
-                        <img 
-                          src={STORAGE_URL + "drivers/" + d2.code + ".png"} 
-                          alt={d2.code} 
-                          className="object-cover h-full"
-                          onError={(e) => { 
-                            e.currentTarget.src = "https://upload.wikimedia.org/wikipedia/commons/4/4e/Racing_Helmet_icon.svg"; 
-                            e.currentTarget.className = "object-contain h-12 opacity-30";
-                          }} 
-                        />
-                    </div>
-                    <h4 className="text-xl font-bold uppercase text-white mb-1">{d2.driver_name || d2.code}</h4>
-                    <span className="text-sm font-mono text-zinc-500 mb-4">{d2.code}</span>
-                    
-                    <div className="w-full bg-black/40 rounded p-3 text-center border border-white/5">
-                      <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">Predicted Pos</p>
-                      <p className="text-3xl font-black text-white">P{Math.round(d2.ai_predicted_pos)}</p>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Team Accent Bar Bottom */}
-                <div className="w-full h-1 mt-auto" style={{ backgroundColor: color }}></div>
-              </div>
-            );
-          })}
+              )
+            });
+          })()}
         </div>
       )}
+
+      {/* Accuracy Audit Tab */}
+      {activeTab === 'audit' && (
+        <div className="min-h-[400px] flex items-center justify-center border border-white/5 rounded-xl bg-zinc-900/30 backdrop-blur-sm relative overflow-hidden">
+           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,243,255,0.05)_0%,transparent_50%)]"></div>
+           <div className="text-center z-10">
+             <div className="w-16 h-16 border-t-2 border-r-2 border-[#00F3FF] rounded-full animate-spin mx-auto mb-6"></div>
+             <h2 className="text-2xl font-bold text-white mb-2 uppercase tracking-widest">Model Calibration</h2>
+             <p className="text-zinc-400 font-mono text-sm max-w-md mx-auto">
+               Historical accuracy audit module is currently processing the latest race deltas.
+               Come back after the race weekend to view AI performance metrics.
+             </p>
+           </div>
+        </div>
+      )}
+
     </div>
   );
 }
